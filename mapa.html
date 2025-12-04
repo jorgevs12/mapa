@@ -1,62 +1,86 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mapa de calor dinámico</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <meta charset="utf-8">
+  <title>Mapa de Calor Cáceres - Puntos separados</title>
+
   <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
     #map {
       width: 100%;
-      height: 100vh;
+      height: 100%;
     }
   </style>
-</head>
-<body>
-  <div id="map"></div>
 
   <!-- Leaflet -->
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <!-- Plugin Leaflet.heat -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Plugin Heatmap -->
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+</head>
 
-  <script>
-    // Inicializa el mapa
-    const map = L.map('map').setView([39.475, -6.372], 13);
+<body>
+<div id="map"></div>
 
-    // Capa base OSM
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+<script>
+  // Centro aproximado de Cáceres
+  const centro = [39.4763, -6.3722];
 
-    // Datos de ejemplo (lat, lng, intensidad)
-    const heatData = [
-      [39.476, -6.371, 0.8],
-      [39.474, -6.373, 0.6],
-      [39.473, -6.369, 0.9],
-      [39.478, -6.375, 0.7],
-      [39.472, -6.366, 0.5]
-    ];
+  const map = L.map('map').setView(centro, 14);
 
-    // Capa de calor
-    const heat = L.heatLayer(heatData, {
-      radius: 25,
-      blur: 15,
-      maxZoom: 17,
-      gradient: {
-        0.2: 'blue',
-        0.4: 'lime',
-        0.6: 'orange',
-        1.0: 'red'
-      }
-    }).addTo(map);
+  // Capa base
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
 
-    // Ejemplo: actualizar datos al mover el mapa
-    map.on('moveend', () => {
-      const center = map.getCenter();
-      // Añade un nuevo punto en el centro cada vez que mueves el mapa
-      heat.addLatLng([center.lat, center.lng, 0.8]);
-    });
-  </script>
+  // 🔥 PUNTOS DE CALOR SEPARADOS (lat, lng, intensidad 0–1)
+  // Puedes cambiar, borrar o añadir líneas de este array.
+  const heatPoints = [
+    // Zona centro / casco histórico
+    [39.4768, -6.3715, 1.0],
+    [39.4763, -6.3735, 0.9],
+
+    // Zona Universidad
+    [39.4808, -6.3405, 0.8],
+
+    // Virgen de Guadalupe / Ronda Norte
+    [39.4800, -6.3710, 0.95],
+
+    // Ruta de la Plata
+    [39.4715, -6.3745, 0.85],
+
+    // Zona Macondo / El Junquillo
+    [39.4710, -6.3860, 0.7],
+
+    // Zona Vistahermosa
+    [39.4695, -6.3645, 0.6]
+  ];
+
+  // HEATMAP CON PUNTOS MARCADOS, NO UNA MANCHA CONTINUA
+  const heat = L.heatLayer(heatPoints, {
+    radius: 40,      // tamaño de cada “mancha”
+    blur: 20,        // suavizado
+    minOpacity: 0.6,
+    maxZoom: 17,
+    gradient: {
+      0.0: 'blue',
+      0.3: 'cyan',
+      0.5: 'lime',
+      0.7: 'yellow',
+      0.85: 'orange',
+      1.0: 'red'
+    }
+  }).addTo(map);
+</script>
 </body>
 </html>
+
