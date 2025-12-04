@@ -5,7 +5,6 @@
   <title>Lectura de decibelios</title>
 </head>
 <body>
-  <h1>Medición de sonido</h1>
   <p id="resultado"></p>
 
   <script>
@@ -18,13 +17,11 @@
     // Mostrar el resultado
     if (decibelios) {
       document.getElementById("resultado").innerText =
-        `Nivel de sonido: ${decibelios} dB`;
-    } else {
-      document.getElementById("resultado").innerText =
-        "No se encontró un valor de decibelios en la URL.";
+        `${decibelios} dB`;
     }
   </script>
 </body>
 </html>
+
 
 
