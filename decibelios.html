@@ -3,6 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <title>Lectura de decibelios</title>
+  <style>
+    body {
+      width: 245px;
+      height: 145px;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000; /* fondo negro para contraste */
+    }
+    #resultado {
+      font-size: 48px;   /* tamaño grande */
+      font-weight: bold;
+      color: #00ff00;    /* verde tipo display digital */
+      font-family: "Courier New", monospace; /* estilo digital */
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
   <p id="resultado"></p>
@@ -18,10 +36,15 @@
     if (decibelios) {
       document.getElementById("resultado").innerText =
         `${decibelios} dB`;
+    } else {
+      document.getElementById("resultado").innerText =
+        "Sin datos";
     }
   </script>
 </body>
 </html>
+
+
 
 
 
