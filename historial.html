@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Historial de Actividad</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body, html { margin:0; padding:0; height:100%; font-family: 'Inter', sans-serif; background:#f0f4f8; }
+  .container {
+    width: 370px;
+    height: 500px;
+    background: white;
+    border-radius: 18px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    margin: 20px auto;
+  }
+
+  .tabs {
+    display: flex;
+    background: #f9fbfc;
+    border-bottom: 1px solid #eee;
+  }
+  .tab {
+    flex: 1;
+    padding: 16px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: #555;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .tab.active {
+    color: #1565c0;
+    position: relative;
+  }
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    background: #1565c0;
+    border-radius: 4px;
+  }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    background: #fcfcfc;
+  }
+
+  .filter-section {
+    background: white;
+    padding: 14px 16px;
+    border-radius: 14px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+    margin-bottom: 16px;
+  }
+
+  .current-range {
+    margin-top: 8px;
+    font-size: 13.8px;
+    color: #1565c0;
+    font-weight: 600;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 15px;
+    border: 1.8px solid #ddd;
+    border-radius: 12px;
+    background: #fff;
+    margin-top: 10px;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: #1976d2;
+    box-shadow: 0 0 0 4px rgba(25,118,210,0.18);
+  }
+
+  canvas {
+    border-radius: 14px;
+    background: white;
+    padding: 14px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+    margin-top: 10px;
+  }
+
+  .alert-item {
+    background: white;
+    padding: 14px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border-left: 5px solid;
+  }
+  .alert-warning { border-left-color: #ff9800; }
+  .alert-danger { border-left-color: #f44336; }
+  .alert-info { border-left-color: #2196F3; }
+  .alert-time { font-size: 13px; color: #777; margin-bottom: 4px; }
+  .alert-title { font-weight: 600; margin: 0 0 6px 0; }
+  .alert-desc { font-size: 14px; color: #444; margin: 0; }
+
+  .no-data {
+    text-align: center;
+    color: #888;
+    margin-top: 60px;
+    font-size: 15.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" data-tab="grafica">Gráfica</button>
+    <button class="tab" data-tab="alertas">Alertas</button>
+  </div>
+
+  <div class="content" id="contenido"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// ======================== CONFIGURACIÓN Y DATOS ESTÁTICOS ========================
+
+const urlParams = new URLSearchParams(window.location.search);
+let tipoFiltro = urlParams.get('filtro') || 'dia';
+if (!['dia','semana','mes','año'].includes(tipoFiltro)) tipoFiltro = 'dia';
+
+let tabActual = 'grafica';
+let valorSeleccionado = null; // Guardará el valor actual del selector
+let chart = null;
+
+// Datos estáticos realistas por filtro y por valor específico
+const datosGrafica = {
+  dia: {
+    "2025-12-04": { labels: ['00h','04h','04h','08h','12h','16h','20h','24h'], data: [1,3,8,15,22,18,10,4] },
+    "2025-12-03": { labels: ['00h','04h','08h','12h','16h','20h','24h'], data: [2,4,10,18,25,20,12,5] },
+    "2025-12-02": { labels: ['00h','04h','08h','12h','16h','20h','24h'], data: [0,2,6,12,16,14,8,3] },
+    // más fechas si quieres...
+  },
+  semana: {
+    "2025-W49": { labels: ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'], data: [18,22,20,26,32,28,15] },
+    "2025-W48": { labels: ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'], data: [15,19,17,23,28,25,12] },
+    "2025-W47": { labels: ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'], data: [20,24,22,27,30,26,18] },
+  },
+  mes: {
+    "2025-12": { labels: ['Semana 1','Semana 2','Semana 3','Semana 4','Semana 5'], data: [88,95,91,98,45] },
+    "2025-11": { labels: ['Semana 1','Semana 2','Semana 3','Semana 4','Semana 5'], data: [82,87,85,90,40] },
+    "2025-10": { labels: ['Semana 1','Semana 2','Semana 3','Semana 4','Semana 5'], data: [90,96,92,100,48] },
+  },
+  año: {
+    "2025": { labels: ['2021','2022','2023','2024','2025'], data: [280,320,380,410,460] },
+    "2024": { labels: ['2020','2021','2022','2023','2024'], data: [250,280,320,380,410] },
+    "2023": { labels: ['2019','2020','2021','2022','2023'], data: [220,250,280,320,380] },
+  }
+};
+
+// Alertas estáticas por período
+const alertasDatos = {
+  dia: {
+    "2025-12-04": [
+      { hora: "14:32", nivel: "danger", titulo: "Pico de actividad detectado", desc: "22 conexiones simultáneas (límite superado)" },
+      { hora: "09:15", nivel: "warning", titulo: "Aumento repentino", desc: "De 8 a 15 en 30 minutos" },
+      { hora: "02:10", nivel: "info", titulo: "Actividad nocturna baja", desc: "Mínimo histórico del día" }
+    ],
+    "2025-12-03": [
+      { hora: "16:45", nivel: "danger", titulo: "Sobrecarga crítica", desc: "25 usuarios simultáneos" },
+      { hora: "11:20", nivel: "warning", titulo: "Tráfico elevado", desc: "Pico matutino inusual" }
+    ]
+  },
+  semana: {
+    "2025-W49": [
+      { hora: "Mar 14:30", nivel: "warning", titulo: "Viernes pico semanal", desc: "32 conexiones el viernes" },
+      { hora: "Lun 09:00", nivel: "info", titulo: "Inicio de semana fuerte", desc: "+20% vs promedio" }
+    ]
+  },
+  mes: {
+    "2025-12": [
+      { hora: "18 Dic", nivel: "danger", titulo: "Récord mensual", desc: "98 conexiones en semana 4" },
+      { hora: "05 Dic", nivel: "info", titulo: "Campaña exitosa", desc: "Semana 2 con +15%" }
+    ]
+  },
+  año: {
+    "2025": [
+      { hora: "2025", nivel: "info", titulo: "Crecimiento anual +12%", desc: "De 410 a 460 promedio diario" },
+      { hora: "2024→2025", nivel: "warning", titulo: "Incremento del 12%", desc: "Mayor salto interanual" }
+    ]
+  }
+};
+
+// Valores por defecto si no existe el seleccionado
+const defaults = {
+  dia: { labels: ['00h','04h','08h','12h','16h','20h','24h'], data: [2,5,12,18,22,15,8,3] },
+  semana: { labels: ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'], data: [18,22,19,25,30,28,15] },
+  mes: { labels: ['Semana 1','Semana 2','Semana 3','Semana 4','Semana 5'], data: [85,92,88,95,42] },
+  año: { labels: ['2021','2022','2023','2024','2025'], data: [280,320,380,410,460] }
+};
+
+// ======================== FUNCIONES ========================
+
+function obtenerValorDefault() {
+  const hoy = new Date();
+  if (tipoFiltro === 'dia') return hoy.toISOString().split('T')[0];
+  if (tipoFiltro === 'semana') {
+    const año = hoy.getFullYear();
+    const semana = String(Math.ceil((hoy - new Date(año,0,1)) / 86400000 / 7)).padStart(2,'0');
+    return `${año}-W${semana}`;
+  }
+  if (tipoFiltro === 'mes') return `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+  if (tipoFiltro === 'año') return String(hoy.getFullYear());
+}
+
+if (!valorSeleccionado) valorSeleccionado = obtenerValorDefault();
+
+function generarSelector() {
+  let html = '';
+  if (tipoFiltro === 'dia') {
+    html = `<input type="date" id="selectorFecha" value="${valorSeleccionado}">`;
+  } else if (tipoFiltro === 'semana') {
+    html = `<input type="week" id="selectorFecha" value="${valorSeleccionado}">`;
+  } else if (tipoFiltro === 'mes') {
+    html = `<input type="month" id="selectorFecha" value="${valorSeleccionado}">`;
+  } else if (tipoFiltro === 'año') {
+    const actual = new Date().getFullYear();
+    html = `<select id="selectorFecha">`;
+    for (let y = actual - 5; y <= actual + 1; y++) {
+      html += `<option value="${y}" ${y == valorSeleccionado ? 'selected' : ''}>${y}</option>`;
+    }
+    html += `</select>`;
+  }
+  return html;
+}
+
+function formatearRango() {
+  if (tipoFiltro === 'dia') {
+    return new Date(valorSeleccionado).toLocaleDateString('es-ES', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  }
+  if (tipoFiltro === 'semana') {
+    const [año, sem] = valorSeleccionado.split('-W');
+    return `Semana ${sem} del ${año}`;
+  }
+  if (tipoFiltro === 'mes') {
+    const [a, m] = valorSeleccionado.split('-');
+    return new Date(a, m-1).toLocaleDateString('es-ES', { month:'long', year:'numeric' });
+  }
+  if (tipoFiltro === 'año') return `Año ${valorSeleccionado}`;
+  return '';
+}
+
+function cargarContenido() {
+  const contenido = document.getElementById('contenido');
+
+  const selectorHTML = generarSelector();
+  const rangoTexto = formatearRango();
+
+  let html = `
+    <div class="filter-section">
+      ${selectorHTML}
+      <div class="current-range">${rangoTexto}</div>
+    </div>
+  `;
+
+  if (tabActual === 'grafica') {
+    html += `<canvas id="miGrafica" height="220"></canvas>`;
+  } else {
+    // ALERTAS
+    const alertas = alertasDatos[tipoFiltro][valorSeleccionado] || alertasDatos[tipoFiltro]["default"] || [];
+    if (alertas.length === 0) {
+      html += `<div class="no-data">Sin alertas en este período</div>`;
+    } else {
+      alertas.forEach(a => {
+        html += `
+          <div class="alert-item alert-${a.nivel}">
+            <div class="alert-time">${a.hora}</div>
+            <p class="alert-title">${a.titulo}</p>
+            <p class="alert-desc">${a.desc}</p>
+          </div>`;
+      });
+    }
+  }
+
+  contenido.innerHTML = html;
+
+  // Evento único que persiste al cambiar de tab
+  const input = document.getElementById('selectorFecha');
+  if (input) {
+    input.onchange = (e) => {
+      valorSeleccionado = e.target.value;
+      cargarContenido(); // recarga todo con nuevo valor
+    };
+  }
+
+  if (tabActual === 'grafica') {
+    setTimeout(dibujarGrafica, 100);
+  }
+}
+
+function dibujarGrafica() {
+  const ctx = document.getElementById('miGrafica').getContext('2d');
+
+  // Buscar datos específicos, si no → default
+  const datosEspecificos = datosGrafica[tipoFiltro][valorSeleccionado] || defaults[tipoFiltro];
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: datosEspecificos.labels,
+      datasets: [{
+        label: 'Actividad',
+        data: datosEspecificos.data,
+        borderColor: '#1565c0',
+        backgroundColor: 'rgba(21, 101, 192, 0.12)',
+        tension: 0.42,
+        fill: true,
+        pointBackgroundColor: '#1565c0',
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        borderWidth: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { 
+          beginAtZero: true,
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          ticks: { font: { size: 13 } }
+        },
+        x: { 
+          grid: { display: false },
+          ticks: { font: { size: 13 } }
+        }
+      }
+    }
+  });
+}
+
+// Cambio de pestaña SIN perder el selector
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    tabActual = btn.dataset.tab;
+    cargarContenido();
+  };
+});
+
+// Inicial
+cargarContenido();
+</script>
+
+</body>
+</html>
