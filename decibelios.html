@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medidor Digital de Decibelios</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #121212;
+        color: #ffff;
+        text-align: center;
+        padding: 50px;
+    }
+    h1 {
+        margin-bottom: 40px;
+    }
+    #decibels {
+        font-size: 64px;
+        font-weight: bold;
+        color: #ffff;
+    }
+</style>
+</head>
+<body>
+    <div id="decibels">0 dB</div>
+
+<script>
+    const decibelDisplay = document.getElementById('decibels');
+
+    async function initMeter() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaStreamSource(stream);
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            source.connect(analyser);
+
+            const timeDomainData = new Uint8Array(analyser.fftSize);
+
+            setInterval(() => {
+                analyser.getByteTimeDomainData(timeDomainData);
+
+                // Calcular RMS
+                let sumSquares = 0;
+                for (let i = 0; i < timeDomainData.length; i++) {
+                    const sample = (timeDomainData[i] - 128) / 128;
+                    sumSquares += sample * sample;
+                }
+                const rms = Math.sqrt(sumSquares / timeDomainData.length);
+
+                // Convertir a dBFS
+                const dBFS = 20 * Math.log10(rms);
+
+                // Aproximar a dB SPL (calibración simple)
+                const maxSPL = 150;
+                const refSPL = 130;
+                let dBSPL = (dBFS + 100) * (refSPL / 100);
+                dBSPL = Math.max(0, Math.min(dBSPL, maxSPL));
+
+                // Mostrar solo el valor digital
+                decibelDisplay.textContent = `${dBSPL.toFixed(1)} dB SPL`;
+            }, 500);
+        } catch (err) {
+            alert('Error al acceder al micrófono: ' + err);
+        }
+    }
+
+    // Iniciar automáticamente al cargar la página
+    window.onload = initMeter;
+</script>
+</body>
+</html>

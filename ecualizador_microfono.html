@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ecualizador con Micrófono</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #121212;
+        color: #fff;
+        text-align: center;
+        padding: 20px;
+    }
+    h1 {
+        margin-bottom: 20px;
+    }
+    .bars {
+        display: flex;
+        justify-content: center;
+        align-items: center; /* centramos verticalmente */
+        height: 200px;
+        gap: 5px;
+        margin-top: 30px;
+        position: relative;
+    }
+.bar {
+    width: 20px;
+    height: 100px; /* altura máxima más corta */
+    background: limegreen;
+    transform-origin: center;
+    transform: scaleY(0);
+    transition: transform 0.1s;
+}
+    #decibels {
+        margin-top: 20px;
+        font-size: 24px;
+        font-weight: bold;
+    }
+    /* Línea central opcional para referencia */
+    .bars::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: #888;
+    }
+</style>
+</head>
+<body>
+    <h1>Ecualizador en Tiempo Real</h1>
+    <div class="bars" id="bars"></div>
+    <div id="decibels">Nivel: 0 dB</div>
+
+<script>
+    const barsContainer = document.getElementById('bars');
+    const decibelDisplay = document.getElementById('decibels');
+
+    // Crear 20 barras
+    const numBars = 20;
+    for (let i = 0; i < numBars; i++) {
+        const bar = document.createElement('div');
+        bar.classList.add('bar');
+        barsContainer.appendChild(bar);
+    }
+    const bars = document.querySelectorAll('.bar');
+
+    async function initEqualizer() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaStreamSource(stream);
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 64;
+            source.connect(analyser);
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            const timeDomainData = new Uint8Array(analyser.fftSize);
+
+            setInterval(() => {
+                analyser.getByteFrequencyData(dataArray);
+                analyser.getByteTimeDomainData(timeDomainData);
+
+                // Dibujar barras simétricas desde el centro
+                for (let i = 0; i < numBars; i++) {
+                    const value = dataArray[i] || 0;
+                    const scale = (value / 255) * 1.2; // escala hasta el doble
+                    bars[i].style.transform = `scaleY(${scale})`;
+
+                    // Cambiar color según intensidad
+                    if (scale < 0.5) bars[i].style.background = 'limegreen';
+                    else if (scale < 1) bars[i].style.background = 'yellow';
+                    else bars[i].style.background = 'red';
+                }
+
+                // Calcular RMS y convertir a dB SPL aprox
+                let sumSquares = 0;
+                for (let i = 0; i < timeDomainData.length; i++) {
+                    const sample = (timeDomainData[i] - 128) / 128;
+                    sumSquares += sample * sample;
+                }
+                const rms = Math.sqrt(sumSquares / timeDomainData.length);
+                const dBFS = 20 * Math.log10(rms);
+                const maxSPL = 150;
+                const refSPL = 130;
+                let dBSPL = (dBFS + 100) * (refSPL / 100);
+                dBSPL = Math.min(dBSPL, maxSPL);
+
+                decibelDisplay.textContent = `Nivel: ${dBSPL.toFixed(1)} dB SPL`;
+            }, 250);
+        } catch (err) {
+            alert('Error al acceder al micrófono: ' + err);
+        }
+    }
+
+    // Iniciar automáticamente al cargar la página
+    window.onload = initEqualizer;
+</script>
+</body>
+</html>
+
+
