@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mapa de calor dinámico</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Plugin Leaflet.heat -->
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+  <script>
+    // Inicializa el mapa
+    const map = L.map('map').setView([39.475, -6.372], 13);
+
+    // Capa base OSM
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Datos de ejemplo (lat, lng, intensidad)
+    const heatData = [
+      [39.476, -6.371, 0.8],
+      [39.474, -6.373, 0.6],
+      [39.473, -6.369, 0.9],
+      [39.478, -6.375, 0.7],
+      [39.472, -6.366, 0.5]
+    ];
+
+    // Capa de calor
+    const heat = L.heatLayer(heatData, {
+      radius: 25,
+      blur: 15,
+      maxZoom: 17,
+      gradient: {
+        0.2: 'blue',
+        0.4: 'lime',
+        0.6: 'orange',
+        1.0: 'red'
+      }
+    }).addTo(map);
+
+    // Ejemplo: actualizar datos al mover el mapa
+    map.on('moveend', () => {
+      const center = map.getCenter();
+      // Añade un nuevo punto en el centro cada vez que mueves el mapa
+      heat.addLatLng([center.lat, center.lng, 0.8]);
+    });
+  </script>
+</body>
+</html>
