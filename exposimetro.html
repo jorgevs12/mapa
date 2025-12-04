@@ -1,140 +1,163 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Exposímetro con Micrófono</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=245, initial-scale=1" />
+<title>Medidor dB</title>
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #121212;
-        color: #fff;
-        text-align: center;
-        padding: 20px;
-    }
-    h1 {
-        margin-bottom: 20px;
-    }
-    .meter {
-        position: relative;
-        width: 320px;
-        height: 160px;
-        margin: 40px auto;
-        border: 4px solid #444;
-        border-radius: 160px 160px 0 0;
-        background: #222;
-        overflow: hidden;
-    }
-    .scale {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        top: 0;
-        left: 0;
-        pointer-events: none;
-    }
-    .scale span {
-        position: absolute;
-        font-size: 12px;
-        color: #fff;
-        transform: translate(-50%, -50%);
-    }
-    .needle {
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        width: 4px;
-        height: 140px;
-        background: red;
-        transform-origin: bottom center;
-        transform: rotate(-90deg);
-        transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-    }
-    #decibels {
-        margin-top: 20px;
-        font-size: 24px;
-        font-weight: bold;
-    }
+  :root {
+    --w: 245px;
+    --h: 145px;
+    --bg: #fff;
+    --fg: #000;
+    --muted: #000;
+    --needle: #ff4d67;
+    --tick: #000;
+    --arc: #fff;
+  }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, sans-serif;
+  }
+  .wrap {
+    width: var(--w);
+    height: var(--h);
+    display: grid;
+    place-items: center;
+  }
+  svg {
+    width: var(--w);
+    height: var(--h);
+    overflow: visible;
+  }
 </style>
 </head>
 <body>
-    <h1>Exposímetro en Tiempo Real</h1>
-    <div class="meter">
-        <div class="needle" id="needle"></div>
-        <div class="scale" id="scale"></div>
-    </div>
-    <div id="decibels">Nivel: 0 dB SPL</div>
+<div class="wrap">
+  <svg viewBox="0 0 245 145">
+    <!-- Arco base -->
+    <path d="M20,125 A102.5,102.5 0 0 1 225,125"
+          fill="none" stroke="var(--arc)" stroke-width="8" stroke-linecap="round"/>
+
+    <!-- Arco activo -->
+    <path id="arcActive" d=""
+          fill="none" stroke="#49d17a" stroke-width="8" stroke-linecap="round"/>
+
+    <!-- Ticks -->
+    <g id="ticks"></g>
+
+    <!-- Aguja -->
+    <g id="needle">
+      <line id="needleLine" x1="122.5" y1="125" x2="122.5" y2="5"
+            stroke="var(--needle)" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="122.5" cy="125" r="6" fill="var(--needle)"/>
+    </g>
+
+    <!-- Etiquetas -->
+    <g id="labels" fill="var(--muted)" font-size="11" text-anchor="middle"></g>
+
+    <!-- Marca “dB” -->
+    <text x="122.5" y="138" fill="var(--muted)" font-size="12" text-anchor="middle">dB</text>
+  </svg>
+</div>
 
 <script>
-    const decibelDisplay = document.getElementById('decibels');
-    const needle = document.getElementById('needle');
-    const scale = document.getElementById('scale');
+  const MIN_DB = 0;
+  const MAX_DB = 140;
+  const CX = 122.5, CY = 125;
+  const R = 102.5;
+  const START_DEG = 180;
+  const END_DEG = 0;
+  const toRad = a => (a * Math.PI) / 180;
 
-    const maxSPL = 150;
+  const params = new URLSearchParams(location.search);
+  const raw = parseFloat(params.get("db"));
+  const targetDb = Number.isFinite(raw) ? Math.max(MIN_DB, Math.min(MAX_DB, raw)) : 0;
 
-    // Dibujar números de la escala (cada 10 dB de 0 a 150)
-    const centerX = 160; // centro del semicírculo
-    const centerY = 160; // base del semicírculo
-    const radius = 140;  // radio para colocar números
+  const tickG = document.getElementById("ticks");
+  const labelG = document.getElementById("labels");
+  const majors = [0,20,40,60,80,100,120,140];
+  majors.forEach(v => {
+    const t = (v - MIN_DB) / (MAX_DB - MIN_DB);
+    const ang = START_DEG - t * (START_DEG - END_DEG);
+    const x1 = CX + (R - 8) * Math.cos(toRad(ang));
+    const y1 = CY - (R - 8) * Math.sin(toRad(ang));
+    const x2 = CX + R * Math.cos(toRad(ang));
+    const y2 = CY - R * Math.sin(toRad(ang));
 
-    for (let i = 10; i < maxSPL; i += 10) {
-        const angle = (-180 + (i / maxSPL) * 180) * Math.PI / 180;
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
-        const label = document.createElement('span');
-        label.style.left = `${x}px`;
-        label.style.top = `${y}px`;
-        label.textContent = i;
-        scale.appendChild(label);
+    const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    tick.setAttribute("x1", x1); tick.setAttribute("y1", y1);
+    tick.setAttribute("x2", x2); tick.setAttribute("y2", y2);
+    tick.setAttribute("stroke", "var(--tick)");
+    tick.setAttribute("stroke-width", "2");
+    tick.setAttribute("stroke-linecap", "round");
+    tickG.appendChild(tick);
+
+    const lx = CX + (R - 22) * Math.cos(toRad(ang));
+    const ly = CY - (R - 22) * Math.sin(toRad(ang));
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", lx); label.setAttribute("y", ly + 4);
+    label.textContent = v;
+    labelG.appendChild(label);
+  });
+
+  function arcPathForDb(db) {
+    const clamp = Math.max(MIN_DB, Math.min(MAX_DB, db));
+    const tEnd = (clamp - MIN_DB) / (MAX_DB - MIN_DB);
+    const angStart = START_DEG;
+    const angEnd = START_DEG + tEnd * (END_DEG - START_DEG );
+
+    const x0 = CX + R * Math.cos(toRad(angStart));
+    const y0 = CY - R * Math.sin(toRad(angStart));
+    const x1 = CX + R * Math.cos(toRad(angEnd));
+    const y1 = CY - R * Math.sin(toRad(angEnd));
+
+    const delta = Math.abs(angEnd - angStart);
+    const largeArc = delta > 180 ? 1 : 0;
+
+    return `M ${x0},${y0} A ${R},${R} 0 ${largeArc} 1 ${x1},${y1}`;
+  }
+
+  function getArcColor(db) {
+    if (db >= 100) return "#ff4d4d";
+    if (db >= 70) return "#ffaa33";
+    return "#49d17a";
+  }
+
+  function setNeedle(db) {
+    const t = (db - MIN_DB) / (MAX_DB - MIN_DB);
+    const ang = START_DEG - t * (START_DEG - END_DEG);
+    const x = CX + (R - 25) * Math.cos(toRad(ang));
+    const y = CY - (R - 25) * Math.sin(toRad(ang));
+    const needleLine = document.getElementById("needleLine");
+    needleLine.setAttribute("x2", x);
+    needleLine.setAttribute("y2", y);
+  }
+
+  let currentDb = 0;
+  const arcActive = document.getElementById("arcActive");
+  function animate() {
+    const diff = targetDb - currentDb;
+    if (Math.abs(diff) < 0.1) {
+      currentDb = targetDb;
+    } else {
+      currentDb += diff * 0.12;
     }
-
-    async function initMeter() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const source = audioContext.createMediaStreamSource(stream);
-            const analyser = audioContext.createAnalyser();
-            analyser.fftSize = 256;
-            source.connect(analyser);
-
-            const timeDomainData = new Uint8Array(analyser.fftSize);
-
-            setInterval(() => {
-                analyser.getByteTimeDomainData(timeDomainData);
-
-                // Calcular RMS
-                let sumSquares = 0;
-                for (let i = 0; i < timeDomainData.length; i++) {
-                    const sample = (timeDomainData[i] - 128) / 128;
-                    sumSquares += sample * sample;
-                }
-                const rms = Math.sqrt(sumSquares / timeDomainData.length);
-
-                // Convertir a dBFS
-                const dBFS = 20 * Math.log10(rms);
-
-                // Aproximar a dB SPL (calibración simple)
-                const refSPL = 130;
-                let dBSPL = (dBFS + 100) * (refSPL / 100);
-                dBSPL = Math.max(0, Math.min(dBSPL, maxSPL));
-
-                // Mostrar valor
-                decibelDisplay.textContent = `Nivel: ${dBSPL.toFixed(1)} dB SPL`;
-
-                // Mover aguja
-                const angle = -90 + (dBSPL / maxSPL) * 180;
-                needle.style.transform = `rotate(${angle}deg)`;
-            }, 500);
-        } catch (err) {
-            alert('Error al acceder al micrófono: ' + err);
-        }
-    }
-
-    // Iniciar automáticamente al cargar la página
-    window.onload = initMeter;
+    arcActive.setAttribute("d", arcPathForDb(currentDb));
+    arcActive.setAttribute("stroke", getArcColor(currentDb));
+    setNeedle(currentDb);
+    if (currentDb !== targetDb) requestAnimationFrame(animate);
+  }
+  arcActive.setAttribute("d", arcPathForDb(0));
+  arcActive.setAttribute("stroke", getArcColor(0));
+  setNeedle(0);
+  requestAnimationFrame(animate);
 </script>
 </body>
 </html>
+
 
 
 
