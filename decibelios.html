@@ -11,14 +11,21 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #000; /* fondo negro para contraste */
+      background: #ffffff; /* fondo negro para contraste */
     }
     #resultado {
-      font-size: 48px;   /* tamaño grande */
+      font-family: "Courier New", monospace;
       font-weight: bold;
-      color: #ffffff;    /* verde tipo display digital */
-      font-family: "Courier New", monospace; /* estilo digital */
+      color: #000; /* verde tipo display digital */
       text-align: center;
+    }
+    .numero {
+      font-size: 64px; /* número grande */
+    }
+    .unidad {
+      font-size: 24px; /* "dB" más pequeño */
+      vertical-align: super; /* lo sube un poco */
+      margin-left: 4px;
     }
   </style>
 </head>
@@ -34,11 +41,10 @@
 
     // Mostrar el resultado
     if (decibelios) {
-      document.getElementById("resultado").innerText =
-        `${decibelios} dB`;
+      document.getElementById("resultado").innerHTML =
+        `<span class="numero">${decibelios}</span><span class="unidad">dB</span>`;
     } else {
-      document.getElementById("resultado").innerText =
-        "Sin datos";
+      document.getElementById("resultado").innerText = "Sin datos";
     }
   </script>
 </body>
