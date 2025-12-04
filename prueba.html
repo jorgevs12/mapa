@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reproducir Sonido</title>
+  <style>
+    #playBtn {
+      width: 166px;
+      height: 61px;
+      font-size: 16px;
+      background-color: white;   /* color blanco */
+      border: 2px solid #ccc;    /* borde gris suave */
+      border-radius: 12px;       /* esquinas redondeadas */
+      cursor: pointer;
+      padding: 0px;
+      margin: 0px;
+    }
+    body {
+      margin: 0;              /* elimina márgenes del body */
+      padding: 0;             /* elimina padding */
+    }
+    #playBtn:hover {
+      border-color: #888;        /* efecto hover */
+    }
+  </style>
+</head>
+<body>
+  <button id="playBtn">Reproducir sonido</button>
+
+  <script>
+    let audioCtx = null;
+    let oscillator = null;
+
+    // Obtener parámetro ?tipo= de la URL
+    function getFrecuencia() {
+      const params = new URLSearchParams(window.location.search);
+      const valor = params.get("tipo");
+      return valor ? parseInt(valor) : 1000; // por defecto 1000 Hz
+    }
+
+    function playTone() {
+      const freq = getFrecuencia();
+
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      if (oscillator) {
+        oscillator.stop();
+        oscillator.disconnect();
+      }
+
+      oscillator = audioCtx.createOscillator();
+      oscillator.type = "sine"; // onda senoidal
+      oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+      oscillator.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.5); // dura 2 segundos
+    }
+
+    document.getElementById("playBtn").addEventListener("click", playTone);
+  </script>
+</body>
+</html>
+
