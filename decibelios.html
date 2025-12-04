@@ -1,42 +1,30 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel Decibelios</title>
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #121212;
-        color: #fff;
-        text-align: center;
-        padding: 50px;
-    }
-    #panel {
-        font-size: 48px;
-        font-weight: bold;
-        background: #1e1e1e;
-        border: 2px solid #444;
-        padding: 20px;
-        margin-top: 20px;
-    }
-</style>
+  <meta charset="UTF-8">
+  <title>Lectura de decibelios</title>
 </head>
 <body>
-    <h1>Panel Informativo de Decibelios</h1>
-    <div id="panel">0 dB SPL</div>
+  <h1>Medición de sonido</h1>
+  <p id="resultado"></p>
 
-<script>
-    function generarDecibeliosAleatorios() {
-        const dBSPL = Math.floor(Math.random() * (120 - 30 + 1)) + 30;
-        document.getElementById('panel').textContent = `${dBSPL} dB SPL`;
+  <script>
+    // Obtener parámetros de la URL
+    const params = new URLSearchParams(window.location.search);
 
-        // Exponer el valor para Axure
-        document.title = dBSPL;      // el título del documento lleva el valor
-        window.name = dBSPL;         // también en window.name
+    // Recoger el valor "db" (decibelios)
+    const decibelios = params.get("db");
+
+    // Mostrar el resultado
+    if (decibelios) {
+      document.getElementById("resultado").innerText =
+        `Nivel de sonido: ${decibelios} dB`;
+    } else {
+      document.getElementById("resultado").innerText =
+        "No se encontró un valor de decibelios en la URL.";
     }
-
-    setInterval(generarDecibeliosAleatorios, 1000);
-</script>
+  </script>
 </body>
 </html>
+
+
