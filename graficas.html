@@ -83,10 +83,7 @@
         const fecha = urlParams.get('fecha');
 
         if (!filtro || !fecha || !['dia','mes','año','semana'].includes(filtro) || !moment(fecha,'YYYY-MM-DD',true).isValid()) {
-            mostrarError(`Parámetros incorrectos<br><br>Ejemplos válidos:<br>
-                ?filtro=mes&fecha=2025-06-01<br>
-                ?filtro=año&fecha=2025-01-01<br>
-                ?filtro=dia&fecha=2025-12-07`);
+            mostrarError(`No hay datos de esa fecha`);
             return;
         }
 
@@ -179,4 +176,5 @@
     cargarDatos();
 </script>
 </body>
+
 </html>
