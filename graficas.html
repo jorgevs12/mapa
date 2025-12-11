@@ -81,27 +81,41 @@
         const urlParams = new URLSearchParams(location.search);
         const filtro = urlParams.get('filtro');
         const fecha = urlParams.get('fecha');
+        const fechaFin = urlParams.get('fechaFin');
 
-        if (!filtro || !fecha || !['dia','mes','año','semana'].includes(filtro) || !moment(fecha,'YYYY-MM-DD',true).isValid()) {
+        if (!filtro || !fecha || !['dia','mes','año'].includes(filtro) || !moment(fecha,'YYYY-MM-DD',true).isValid()) {
             mostrarError(`No hay datos de esa fecha`);
             return;
         }
 
-        const resultado = generarDatos(filtro, fecha);
+        const resultado = generarDatos(filtro, fecha, fechaFin);
         if (resultado) dibujar(resultado);
         else mostrarError('No hay datos para este período');
     }
 
-    function generarDatos(filtro, fechaStr) {
+    function generarDatos(filtro, fechaStr, fechaFin) {
         const base = moment(fechaStr);
         let labels = [], values = [], titulo = '', tipo = 'line';
 
-        if (filtro === 'dia') {
+         if (filtro === 'dia') {
+            if(fechaStr!=fechaFin){
+                if(fechaFin <fechaStr){
+                    const aux = fechaStr;
+                    fechaStr=fechaFin;
+                    fechaFin=aux;
+                }
+                const dia = DATA.filter(d => (d.fecha >=fechaStr && d.fecha <=fechaFin));
+                if (!dia.length) return null;
+                labels = dia.map(d => moment(d.fecha).format('D'));
+                values = dia.map(d => d.avg_db);
+                titulo = base.format('MMMM YYYY');
+            }else{
             const dia = DATA.find(d => d.fecha === fechaStr);
             if (!dia?.hourly_data) return null;
             labels = dia.hourly_data.map(h => h.hora.replace(':00',''));
             values = dia.hourly_data.map(h => h.db);
             titulo = base.format('D MMM YYYY');
+        }
 
         } else if (filtro === 'mes') {
             const prefijo = base.format('YYYY-MM');
