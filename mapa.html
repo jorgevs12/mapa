@@ -1,86 +1,127 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <title>Mapa de Calor Cáceres - Puntos separados</title>
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapa de Calor de Ruido - Cáceres</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
+    body { margin: 0; padding: 0; }
+    #map { width: 100%; height: 100vh; }
+    .leaflet-control-legend {
+      background: rgba(255, 255, 255, 0.92);
+      padding: 6px 10px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+      font-family: sans-serif;
+      font-size: 13px;
+      max-width: 160px;
     }
-    #map {
-      width: 100%;
-      height: 100%;
+    .color-item { display: flex; align-items: center; margin: 6px 0; cursor: pointer; }
+    .color-item.inactive { opacity: 0.4; }
+    .color-box {
+      width: 24px; height: 18px; border-radius: 4px;
+      margin-right: 8px; border: 1px solid #999;
     }
   </style>
-
-  <!-- Leaflet -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  >
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- Plugin Heatmap -->
-  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 </head>
-
 <body>
-<div id="map"></div>
+  <div id="map"></div>
 
-<script>
-  // Centro aproximado de Cáceres
-  const centro = [39.4763, -6.3722];
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
-  const map = L.map('map').setView(centro, 14);
-
-  // Capa base
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap'
-  }).addTo(map);
-
-  // 🔥 PUNTOS DE CALOR SEPARADOS (lat, lng, intensidad 0–1)
-  // Puedes cambiar, borrar o añadir líneas de este array.
-  const heatPoints = [
-    // Zona centro / casco histórico
-    [39.4768, -6.3715, 1.0],
-    [39.4763, -6.3735, 0.9],
-
-    // Zona Universidad
-    [39.4808, -6.3405, 0.8],
-
-    // Virgen de Guadalupe / Ronda Norte
-    [39.4800, -6.3710, 0.95],
-
-    // Ruta de la Plata
-    [39.4715, -6.3745, 0.85],
-
-    // Zona Macondo / El Junquillo
-    [39.4710, -6.3860, 0.7],
-
-    // Zona Vistahermosa
-    [39.4695, -6.3645, 0.6]
-  ];
-
-  // HEATMAP CON PUNTOS MARCADOS, NO UNA MANCHA CONTINUA
-  const heat = L.heatLayer(heatPoints, {
-    radius: 40,      // tamaño de cada “mancha”
-    blur: 20,        // suavizado
-    minOpacity: 0.6,
-    maxZoom: 17,
-    gradient: {
-      0.0: 'blue',
-      0.3: 'cyan',
-      0.5: 'lime',
-      0.7: 'yellow',
-      0.85: 'orange',
-      1.0: 'red'
+  <script>
+    const map = L.map('map').setView([39.474, -6.372], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    
+    function generarRuidoNatural(cantidad = 3000) {
+      const puntos = [];
+      const centroLat = 39.474, centroLng = -6.372;
+      for (let i = 0; i < cantidad; i++) {
+        const radio = Math.random() * 0.09;
+        const angulo = Math.random() * 2 * Math.PI;
+        const lat = centroLat + radio * Math.cos(angulo);
+        const lng = centroLng + radio * Math.sin(angulo) * 1.4;
+        let intensidad = Math.random();
+        if (Math.random() < 0.2) intensidad += 0.3;
+        intensidad = Math.min(1, intensidad);
+        puntos.push([lat, lng, intensidad]);
+      }
+      return puntos;
     }
-  }).addTo(map);
-</script>
+
+    const heatData = generarRuidoNatural();
+
+    const layers = { bajo: [], moderado: [], alto: [], muyAlto: [], extremo: [] };
+    heatData.forEach(p => {
+      const i = p[2];
+      if (i < 0.3) layers.bajo.push(p);
+      else if (i < 0.5) layers.moderado.push(p);
+      else if (i < 0.7) layers.alto.push(p);
+      else if (i < 0.85) layers.muyAlto.push(p);
+      else layers.extremo.push(p);
+    });
+
+    const gradients = {
+      bajo: {0.0:'rgba(0,120,255,0)',1.0:'rgba(0,120,255,1)'},
+      moderado:{0.0:'rgba(100,255,140,0)',1.0:'rgba(53,255,91,0.2)'},
+      alto:{0.0:'rgba(255,255,120,0)',1.0:'rgba(255,255,120,0.2)'},
+      muyAlto:{0.0:'rgba(255,180,80,0)',1.0:'rgba(255,180,80,0.2)'},
+      extremo:{0.0:'rgba(255,80,80,0)',1.0:'rgba(255,80,80,0.2)'}
+    };
+
+    const heatLayers = {};
+    Object.keys(layers).forEach(level=>{
+      heatLayers[level] = L.heatLayer(layers[level], {
+        radius: 35, blur: 35, minOpacity: 0.3, gradient: gradients[level]
+      });
+    });
+
+    const layerOrder = ["bajo","moderado","alto","muyAlto","extremo"];
+    const activeLayers = new Set(layerOrder);
+
+    layerOrder.forEach(l => heatLayers[l].addTo(map));
+
+    function reapilarCapas() {
+      layerOrder.forEach(l => {
+        if (activeLayers.has(l)) {
+          map.removeLayer(heatLayers[l]);
+          heatLayers[l].addTo(map);
+        }
+      });
+    }
+
+    // Leyenda
+    const legend = L.control({position:'bottomright'});
+    legend.onAdd = function(){
+      const div = L.DomUtil.create('div','leaflet-control-legend');
+      div.innerHTML = `
+        <h4>Niveles de ruido</h4>
+        <div class="color-item" data-level="bajo"><div class="color-box" style="background:#0078ff"></div>(&lt;60 dB)</div>
+        <div class="color-item" data-level="moderado"><div class="color-box" style="background:#64ff8c"></div>(60–75 dB)</div>
+        <div class="color-item" data-level="alto"><div class="color-box" style="background:#ffff78"></div>(75–90 dB)</div>
+        <div class="color-item" data-level="muyAlto"><div class="color-box" style="background:#ffb450"></div>(90–100 dB)</div>
+        <div class="color-item" data-level="extremo"><div class="color-box" style="background:#ff5050"></div>(&gt;100 dB)</div>
+      `;
+      div.querySelectorAll('.color-item').forEach(item=>{
+        item.addEventListener('click',()=>{
+          const level = item.getAttribute('data-level');
+          if (activeLayers.has(level)) {
+            map.removeLayer(heatLayers[level]);
+            activeLayers.delete(level);
+            item.classList.add('inactive');
+          } else {
+            activeLayers.add(level);
+            reapilarCapas(); 
+            item.classList.remove('inactive');
+          }
+        });
+      });
+      return div;
+    };
+    legend.addTo(map);
+  </script>
 </body>
 </html>
 
