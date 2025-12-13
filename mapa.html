@@ -23,6 +23,17 @@
       width: 24px; height: 18px; border-radius: 4px;
       margin-right: 8px; border: 1px solid #999;
     }
+    #legendContent {
+  overflow: hidden;
+  max-height: 500px;   /* suficiente para todo el contenido */
+  opacity: 1;
+  transition: max-height 0.5s ease, opacity 0.5s ease;
+}
+
+#legendContent.oculto {
+  max-height: 0;
+  opacity: 0;
+}
   </style>
 </head>
 <body>
@@ -34,7 +45,8 @@
   <script>
     const map = L.map('map').setView([39.474, -6.372], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    
+
+    // Datos de ejemplo
     function generarRuidoNatural(cantidad = 3000) {
       const puntos = [];
       const centroLat = 39.474, centroLng = -6.372;
@@ -53,6 +65,7 @@
 
     const heatData = generarRuidoNatural();
 
+    // Clasificación
     const layers = { bajo: [], moderado: [], alto: [], muyAlto: [], extremo: [] };
     heatData.forEach(p => {
       const i = p[2];
@@ -78,11 +91,14 @@
       });
     });
 
+    // Orden jerárquico fijo: bajo → moderado → alto → muyAlto → extremo
     const layerOrder = ["bajo","moderado","alto","muyAlto","extremo"];
     const activeLayers = new Set(layerOrder);
 
+    // Añadir todas en orden inicial
     layerOrder.forEach(l => heatLayers[l].addTo(map));
 
+    // Función para reapilar en orden jerárquico
     function reapilarCapas() {
       layerOrder.forEach(l => {
         if (activeLayers.has(l)) {
@@ -97,13 +113,18 @@
     legend.onAdd = function(){
       const div = L.DomUtil.create('div','leaflet-control-legend');
       div.innerHTML = `
-        <h4>Niveles de ruido</h4>
+        <h4 style="margin:0; display:flex; justify-content:space-between; align-items:center;">
+      Niveles de ruido
+      <button id="toggleLegend" style="margin-left:8px; font-size:11px;">–</button>
+    </h4>
+    <div id="legendContent">
         <div class="color-item" data-level="bajo"><div class="color-box" style="background:#0078ff"></div>(&lt;60 dB)</div>
         <div class="color-item" data-level="moderado"><div class="color-box" style="background:#64ff8c"></div>(60–75 dB)</div>
         <div class="color-item" data-level="alto"><div class="color-box" style="background:#ffff78"></div>(75–90 dB)</div>
         <div class="color-item" data-level="muyAlto"><div class="color-box" style="background:#ffb450"></div>(90–100 dB)</div>
         <div class="color-item" data-level="extremo"><div class="color-box" style="background:#ff5050"></div>(&gt;100 dB)</div>
-      `;
+    </div>
+        `;
       div.querySelectorAll('.color-item').forEach(item=>{
         item.addEventListener('click',()=>{
           const level = item.getAttribute('data-level');
@@ -113,15 +134,23 @@
             item.classList.add('inactive');
           } else {
             activeLayers.add(level);
-            reapilarCapas(); 
+            reapilarCapas(); // reordenar siempre en jerarquía fija
             item.classList.remove('inactive');
           }
         });
       });
+      const toggleBtn = div.querySelector('#toggleLegend');
+  const content = div.querySelector('#legendContent');
+
+  toggleBtn.addEventListener('click', () => {
+    content.classList.toggle('oculto');
+    toggleBtn.textContent = content.classList.contains('oculto') ? '+' : '–';
+  });
       return div;
     };
     legend.addTo(map);
+    
+
   </script>
 </body>
 </html>
-
