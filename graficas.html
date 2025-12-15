@@ -1,194 +1,190 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Auditivo</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/es.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Auditivo</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/es.min.js"></script>
 
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{padding:0px;display:flex;justify-content:center;min-height:100vh}
-        #container{width:310px;height:373px;border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
-        .summary{text-align:center;padding:10px 8px 8px;background:#e0f7fa}
-        .db-big{font-size:36px;font-weight:bold;color:#006064;line-height:1}
-        .db-label{font-size:10px;color:#555;margin:2px 0 6px}
-        .range{display:inline-block;background:#00acc1;color:white;font-size:11px;font-weight:bold;padding:4px 12px;border-radius:20px}
-        .chart-wrapper{flex:1;padding:8px 12px 12px;position:relative}
-        canvas{max-height:100%}
-        .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-size:12px;color:#d32f2f;background:rgba(255,255,255,.95)}
-        .hidden{display:none!important}
-    </style>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{padding:0;display:flex;;min-height:100vh}
+    #container{
+      min-width:310px; 
+      min-height:373px; 
+      aspect-ratio: 310 / 373;
+      max-width:343px; 
+      max-height:433px; 
+      background:white;
+      border-radius:16px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .summary{text-align:center;padding: 12px;background:#e0f7fa}
+    .db-big{font-size:36px;font-weight:bold;color:#006064;line-height:1}
+    .db-label{font-size:10px;color:#555;margin:2px 0 6px}
+    .range{display:inline-block;background:#00acc1;color:white;font-size:11px;font-weight:bold;padding:4px 12px;border-radius:20px}
+    .chart-wrapper{flex:1;padding:8px 12px 20px;position:relative}
+    canvas{width:100%!important;height:100%!important}
+    .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-size:12px;color:#d32f2f;background:rgba(255,255,255,.95)}
+    .hidden{display:none!important}
+  </style>
 </head>
 <body>
 
 <div id="container">
-    <div class="header">
-        <h1></h1>
-        <p id="periodo"></p>
-    </div>
-    <div class="summary">
-        <div class="db-big" id="maxDb">--</div>
-        <div class="db-label">dB máximo registrado</div>
-        <div class="range" id="rango">--</div>
-    </div>
-    <div class="chart-wrapper">
-        <canvas id="chart"></canvas>
-        <div class="msg" id="loading">Cargando datos...</div>
-        <div class="msg hidden" id="error"></div>
-    </div>
+  <div class="header">
+    <h1></h1>
+    <p id="periodo"></p>
+  </div>
+  <div class="summary">
+    <div class="db-big" id="maxDb">--</div>
+    <div class="db-label">dB máximo registrado</div>
+    <div class="range" id="rango">--</div>
+  </div>
+  <div class="chart-wrapper">
+    <canvas id="chart"></canvas>
+    <div class="msg" id="loading">Cargando datos...</div>
+    <div class="msg hidden" id="error"></div>
+  </div>
 </div>
 
 <script>
-    moment.locale('es');
-    let DATA = [];
+  moment.locale('es');
+  let DATA = [];
 
-    // CAMBIA AQUÍ EL NOMBRE EXACTO DE TU ARCHIVO
-    const ARCHIVO_JSON = 'datos_auditivos.json';   // ←←← SOLO CAMBIA ESTO SI TU ARCHIVO SE LLAMA DIFERENTE
+  const ARCHIVO_JSON = 'datos_auditivos.json';
 
-    async function cargarDatos() {
-        try {
-            // Esto funciona incluso abriendo el HTML con doble clic desde el móvil o PC
-            const response = await fetch(ARCHIVO_JSON + '?v=' + Date.now());
-            if (!response.ok) throw new Error(`No se encontró "${ARCHIVO_JSON}"`);
-            const texto = await response.text();
+  async function cargarDatos() {
+    try {
+      const response = await fetch(ARCHIVO_JSON + '?v=' + Date.now());
+      if (!response.ok) throw new Error(`No se encontró "${ARCHIVO_JSON}"`);
+      const texto = await response.text();
+      DATA = JSON.parse(texto);
+      if (!Array.isArray(DATA)) throw new Error("El JSON debe ser un array de objetos");
 
-            // Forzamos que sea un array válido
-            DATA = JSON.parse(texto);
-            if (!Array.isArray(DATA)) throw new Error("El JSON debe ser un array de objetos");
+      DATA.sort((a,b) => a.fecha.localeCompare(b.fecha));
+      document.getElementById('loading').classList.add('hidden');
+      procesarURL();
 
-            DATA.sort((a,b) => a.fecha.localeCompare(b.fecha));
-            document.getElementById('loading').classList.add('hidden');
-            procesarURL();
+    } catch (err) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').innerHTML = `
+        <strong>Error al cargar los datos</strong><br><br>
+        Asegúrate de que:<br>
+        • El archivo se llame exactamente <code>${ARCHIVO_JSON}</code><br>
+        • Esté en la misma carpeta que este HTML<br>
+        • Sea un JSON válido (un array de objetos)<br><br>
+        Detalle: ${err.message}
+      `;
+    }
+  }
 
-        } catch (err) {
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('error').classList.remove('hidden');
-            document.getElementById('error').innerHTML = `
-                <strong>Error al cargar los datos</strong><br><br>
-                Asegúrate de que:<br>
-                • El archivo se llame exactamente <code>${ARCHIVO_JSON}</code><br>
-                • Esté en la misma carpeta que este HTML<br>
-                • Sea un JSON válido (un array de objetos)<br><br>
-                Detalle: ${err.message}
-            `;
+  function procesarURL() {
+    const urlParams = new URLSearchParams(location.search);
+    const filtro = urlParams.get('filtro');
+    const fecha = urlParams.get('fecha');
+    const fechaFin = urlParams.get('fechaFin');
+
+    if (!filtro || !fecha || !['dia','mes','año'].includes(filtro) || !moment(fecha,'YYYY-MM-DD',true).isValid()) {
+      mostrarError(`No hay datos de esa fecha`);
+      return;
+    }
+
+    const resultado = generarDatos(filtro, fecha, fechaFin);
+    if (resultado) dibujar(resultado);
+    else mostrarError('No hay datos para este período');
+  }
+
+  function generarDatos(filtro, fechaStr, fechaFin) {
+    const base = moment(fechaStr);
+    let labels = [], values = [], titulo = '', tipo = 'line';
+
+    if (filtro === 'dia') {
+      if(fechaStr!=fechaFin){
+        if(fechaFin <fechaStr){
+          const aux = fechaStr;
+          fechaStr=fechaFin;
+          fechaFin=aux;
         }
+        const dia = DATA.filter(d => (d.fecha >=fechaStr && d.fecha <=fechaFin));
+        if (!dia.length) return null;
+        labels = dia.map(d => moment(d.fecha).format('D'));
+        values = dia.map(d => d.avg_db);
+        titulo = base.format('MMMM YYYY');
+      } else {
+        const dia = DATA.find(d => d.fecha === fechaStr);
+        if (!dia?.hourly_data) return null;
+        labels = dia.hourly_data.map(h => h.hora.replace(':00',''));
+        values = dia.hourly_data.map(h => h.db);
+        titulo = base.format('D MMM YYYY');
+      }
+
+    } else if (filtro === 'mes') {
+      const prefijo = base.format('YYYY-MM');
+      const dias = DATA.filter(d => d.fecha.startsWith(prefijo));
+      if (!dias.length) return null;
+      labels = dias.map(d => moment(d.fecha).format('D'));
+      values = dias.map(d => d.avg_db);
+      titulo = base.format('MMMM YYYY');
+
+    } else if (filtro === 'año') {
+      const año = base.format('YYYY');
+      const datos = DATA.filter(d => d.fecha.startsWith(año));
+      if (!datos.length) return null;
+      const porMes = {};
+      datos.forEach(d => {
+        const key = moment(d.fecha).format('YYYY-MM');
+        const nombre = moment(d.fecha).format('MMM');
+        if (!porMes[key]) porMes[key] = {sum:0, cnt:0, nombre};
+        porMes[key].sum += d.avg_db;
+        porMes[key].cnt++;
+      });
+      Object.keys(porMes).sort().forEach(k => {
+        labels.push(porMes[k].nombre);
+        values.push(Math.round(porMes[k].sum / porMes[k].cnt));
+      });
+      titulo = `Año ${año}`;
+      tipo = 'bar';
     }
 
-    function procesarURL() {
-        const urlParams = new URLSearchParams(location.search);
-        const filtro = urlParams.get('filtro');
-        const fecha = urlParams.get('fecha');
-        const fechaFin = urlParams.get('fechaFin');
+    if (!values.length) return null;
+    return {labels, values, titulo, tipo, max: Math.max(...values), min: Math.min(...values)};
+  }
 
-        if (!filtro || !fecha || !['dia','mes','año'].includes(filtro) || !moment(fecha,'YYYY-MM-DD',true).isValid()) {
-            mostrarError(`No hay datos de esa fecha`);
-            return;
-        }
+  function dibujar(d) {
+    document.getElementById('maxDb').textContent = d.max;
+    document.getElementById('rango').textContent = `${d.min}–${d.max} dB`;
 
-        const resultado = generarDatos(filtro, fecha, fechaFin);
-        if (resultado) dibujar(resultado);
-        else mostrarError('No hay datos para este período');
-    }
+    const ctx = document.getElementById('chart').getContext('2d');
+    if (window.miChart) window.miChart.destroy();
 
-    function generarDatos(filtro, fechaStr, fechaFin) {
-        const base = moment(fechaStr);
-        let labels = [], values = [], titulo = '', tipo = 'line';
+    window.miChart = new Chart(ctx, {
+      type: d.tipo,
+      data: { labels: d.labels, datasets: [{ data: d.values,
+        backgroundColor: d.tipo==='bar' ? '#00acc1' : 'rgba(0,172,193,0.15)',
+        borderColor: '#00acc1', borderWidth: 2, tension: 0.3, fill: d.tipo==='line', pointRadius: 3 }]},
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: {display:false} },
+        scales: { y: {display:false, min:60, max:100}, x: {ticks:{font:{size:9}}, grid:{display:false}} }
+      }
+    });
+  }
 
-         if (filtro === 'dia') {
-            if(fechaStr!=fechaFin){
-                if(fechaFin <fechaStr){
-                    const aux = fechaStr;
-                    fechaStr=fechaFin;
-                    fechaFin=aux;
-                }
-                const dia = DATA.filter(d => (d.fecha >=fechaStr && d.fecha <=fechaFin));
-                if (!dia.length) return null;
-                labels = dia.map(d => moment(d.fecha).format('D'));
-                values = dia.map(d => d.avg_db);
-                titulo = base.format('MMMM YYYY');
-            }else{
-            const dia = DATA.find(d => d.fecha === fechaStr);
-            if (!dia?.hourly_data) return null;
-            labels = dia.hourly_data.map(h => h.hora.replace(':00',''));
-            values = dia.hourly_data.map(h => h.db);
-            titulo = base.format('D MMM YYYY');
-        }
+  function mostrarError(texto) {
+    document.getElementById('loading').classList.add('hidden');
+    const e = document.getElementById('error');
+    e.innerHTML = texto;
+    e.classList.remove('hidden');
+  }
 
-        } else if (filtro === 'mes') {
-            const prefijo = base.format('YYYY-MM');
-            const dias = DATA.filter(d => d.fecha.startsWith(prefijo));
-            if (!dias.length) return null;
-            labels = dias.map(d => moment(d.fecha).format('D'));
-            values = dias.map(d => d.avg_db);
-            titulo = base.format('MMMM YYYY');
-
-        } else if (filtro === 'año') {
-            const año = base.format('YYYY');
-            const datos = DATA.filter(d => d.fecha.startsWith(año));
-            if (!datos.length) return null;
-            const porMes = {};
-            datos.forEach(d => {
-                const key = moment(d.fecha).format('YYYY-MM');
-                const nombre = moment(d.fecha).format('MMM');
-                if (!porMes[key]) porMes[key] = {sum:0, cnt:0, nombre};
-                porMes[key].sum += d.avg_db;
-                porMes[key].cnt++;
-            });
-            Object.keys(porMes).sort().forEach(k => {
-                labels.push(porMes[k].nombre);
-                values.push(Math.round(porMes[k].sum / porMes[k].cnt));
-            });
-            titulo = `Año ${año}`;
-            tipo = 'bar';
-
-        } else if (filtro === 'semana') {
-            const inicio = base.clone().startOf('isoWeek');
-            const fin = base.clone().endOf('isoWeek');
-            const semana = DATA.filter(d => moment(d.fecha).isBetween(inicio, fin, null, '[]'));
-            if (!semana.length) return null;
-            labels = semana.map(d => moment(d.fecha).format('dd D').replace('.',''));
-            values = semana.map(d => d.avg_db);
-            titulo = `${inicio.format('D')}–${fin.format('D MMM')}`;
-        }
-
-        if (!values.length) return null;
-        return {labels, values, titulo, tipo, max: Math.max(...values), min: Math.min(...values)};
-    }
-
-    function dibujar(d) {
-        document.getElementById('maxDb').textContent = d.max;
-        document.getElementById('rango').textContent = `${d.min}–${d.max} dB`;
-
-        const ctx = document.getElementById('chart').getContext('2d');
-        if (window.miChart) window.miChart.destroy();
-
-        window.miChart = new Chart(ctx, {
-            type: d.tipo,
-            data: { labels: d.labels, datasets: [{ data: d.values,
-                backgroundColor: d.tipo==='bar' ? '#00acc1' : 'rgba(0,172,193,0.15)',
-                borderColor: '#00acc1', borderWidth: 2, tension: 0.3, fill: d.tipo==='line', pointRadius: 3 }]},
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: {display:false} },
-                scales: { y: {display:false, min:60, max:100}, x: {ticks:{font:{size:9}}, grid:{display:false}} }
-            }
-        });
-    }
-
-    function mostrarError(texto) {
-        document.getElementById('loading').classList.add('hidden');
-        const e = document.getElementById('error');
-        e.innerHTML = texto;
-        e.classList.remove('hidden');
-    }
-
-    // INICIAR
-    cargarDatos();
+  cargarDatos();
 </script>
 </body>
-
 </html>
