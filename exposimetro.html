@@ -4,36 +4,51 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=245, initial-scale=1" />
 <title>Medidor dB</title>
+
 <style>
   :root {
-    --w: 245px;
-    --h: 145px;
-    --bg: #fff;
-    --fg: #000;
-    --muted: #000;
+    /* Modo claro */
+    --bg: #ffffff;
+    --fg: #000000;
+    --muted: #444;
     --needle: #ff4d67;
     --tick: #000;
-    --arc: #fff;
+    --arc: #e6e6e6;
   }
+
+  html.dark {
+    /* Modo oscuro */
+    --bg: #0f0f0f;
+    --fg: #f5f5f5;
+    --muted: #bbbbbb;
+    --needle: #ff6b7a;
+    --tick: #f5f5f5;
+    --arc: #333;
+  }
+
   html, body {
     margin: 0;
     background: var(--bg);
     color: var(--fg);
     font-family: system-ui, sans-serif;
+    transition: background 0.3s ease, color 0.3s ease;
   }
+
   .wrap {
-    width: var(--w);
-    height: var(--h);
+    width: 245px;
+    height: 145px;
     display: grid;
     place-items: center;
   }
+
   svg {
-    width: var(--w);
-    height: var(--h);
+    width: 245px;
+    height: 145px;
     overflow: visible;
   }
 </style>
 </head>
+
 <body>
 <div class="wrap">
   <svg viewBox="0 0 245 145">
@@ -64,6 +79,21 @@
 </div>
 
 <script>
+  /* -------------------------
+     MODO CLARO / OSCURO
+  ------------------------- */
+  const params = new URLSearchParams(location.search);
+  const modo = params.get("modo");
+
+  if (modo === "1") {
+    document.documentElement.classList.add("dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+  }
+
+  /* -------------------------
+     LÓGICA DEL MEDIDOR
+  ------------------------- */
   const MIN_DB = 0;
   const MAX_DB = 140;
   const CX = 122.5, CY = 125;
@@ -72,13 +102,13 @@
   const END_DEG = 0;
   const toRad = a => (a * Math.PI) / 180;
 
-  const params = new URLSearchParams(location.search);
   const raw = parseFloat(params.get("db"));
   const targetDb = Number.isFinite(raw) ? Math.max(MIN_DB, Math.min(MAX_DB, raw)) : 0;
 
   const tickG = document.getElementById("ticks");
   const labelG = document.getElementById("labels");
   const majors = [0,20,40,60,80,100,120,140];
+
   majors.forEach(v => {
     const t = (v - MIN_DB) / (MAX_DB - MIN_DB);
     const ang = START_DEG - t * (START_DEG - END_DEG);
@@ -88,8 +118,10 @@
     const y2 = CY - R * Math.sin(toRad(ang));
 
     const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    tick.setAttribute("x1", x1); tick.setAttribute("y1", y1);
-    tick.setAttribute("x2", x2); tick.setAttribute("y2", y2);
+    tick.setAttribute("x1", x1);
+    tick.setAttribute("y1", y1);
+    tick.setAttribute("x2", x2);
+    tick.setAttribute("y2", y2);
     tick.setAttribute("stroke", "var(--tick)");
     tick.setAttribute("stroke-width", "2");
     tick.setAttribute("stroke-linecap", "round");
@@ -98,7 +130,8 @@
     const lx = CX + (R - 22) * Math.cos(toRad(ang));
     const ly = CY - (R - 22) * Math.sin(toRad(ang));
     const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    label.setAttribute("x", lx); label.setAttribute("y", ly + 4);
+    label.setAttribute("x", lx);
+    label.setAttribute("y", ly + 4);
     label.textContent = v;
     labelG.appendChild(label);
   });
@@ -107,7 +140,7 @@
     const clamp = Math.max(MIN_DB, Math.min(MAX_DB, db));
     const tEnd = (clamp - MIN_DB) / (MAX_DB - MIN_DB);
     const angStart = START_DEG;
-    const angEnd = START_DEG + tEnd * (END_DEG - START_DEG );
+    const angEnd = START_DEG + tEnd * (END_DEG - START_DEG);
 
     const x0 = CX + R * Math.cos(toRad(angStart));
     const y0 = CY - R * Math.sin(toRad(angStart));
@@ -138,6 +171,7 @@
 
   let currentDb = 0;
   const arcActive = document.getElementById("arcActive");
+
   function animate() {
     const diff = targetDb - currentDb;
     if (Math.abs(diff) < 0.1) {
@@ -150,6 +184,7 @@
     setNeedle(currentDb);
     if (currentDb !== targetDb) requestAnimationFrame(animate);
   }
+
   arcActive.setAttribute("d", arcPathForDb(0));
   arcActive.setAttribute("stroke", getArcColor(0));
   setNeedle(0);
@@ -157,7 +192,3 @@
 </script>
 </body>
 </html>
-
-
-
-
