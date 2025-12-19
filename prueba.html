@@ -3,27 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <title>Reproducir Sonido</title>
+
   <style>
-    #playBtn {
-      width: 166px;
-      height: 61px;
-      font-size: 16px;
-      background-color: white;   /* color blanco */
-      border: 2px solid #ccc;    /* borde gris suave */
-      border-radius: 12px;       /* esquinas redondeadas */
-      cursor: pointer;
-      padding: 0px;
-      margin: 0px;
-    }
     body {
-      margin: 0;              /* elimina márgenes del body */
-      padding: 0;             /* elimina padding */
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #f5f5f5;
+      font-family: system-ui, sans-serif;
     }
+
+    #playBtn {
+      width: 212px;
+      height: 97px;
+      font-size: 18px;
+      font-weight: 500;
+      background: #ffffff;
+      border: 2px solid #d0d0d0;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+
     #playBtn:hover {
-      border-color: #888;        /* efecto hover */
+      border-color: #999;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+    }
+
+    #playBtn:active {
+      transform: scale(0.97);
     }
   </style>
 </head>
+
 <body>
   <button id="playBtn">Reproducir sonido</button>
 
@@ -31,11 +47,10 @@
     let audioCtx = null;
     let oscillator = null;
 
-    // Obtener parámetro ?tipo= de la URL
     function getFrecuencia() {
       const params = new URLSearchParams(window.location.search);
       const valor = params.get("tipo");
-      return valor ? parseInt(valor) : 1000; // por defecto 1000 Hz
+      return valor ? parseInt(valor) : 1000;
     }
 
     function playTone() {
@@ -51,16 +66,15 @@
       }
 
       oscillator = audioCtx.createOscillator();
-      oscillator.type = "sine"; // onda senoidal
+      oscillator.type = "sine";
       oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
 
       oscillator.connect(audioCtx.destination);
       oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.5); // dura 2 segundos
+      oscillator.stop(audioCtx.currentTime + 0.5);
     }
 
     document.getElementById("playBtn").addEventListener("click", playTone);
   </script>
 </body>
 </html>
-
