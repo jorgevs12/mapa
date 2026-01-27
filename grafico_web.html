@@ -118,13 +118,6 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
-        #mainChart {
-    width: 100% !important;
-    height: 100% !important;
-    image-rendering: crisp-edges;
-}
-
-
 
     </style>
 </head>
@@ -152,15 +145,27 @@
     </div>
 </div>
 <script>
-
-    
 // ===============================
 // 1. OBTENER PARAMETRO ?data=
 // ===============================
+// 1. OBTENER PARAMETRO ?data= Y DECODIFICAR BASE64
+// ===============================
 function getParamData() {
     const params = new URLSearchParams(window.location.search);
-    return params.get("data") || "";
+    const encoded = params.get("data") || "";
+
+    if (!encoded) return "";
+
+    try {
+        // Decodifica Base64 y maneja correctamente caracteres UTF-8 (tildes, eñes, etc.)
+        return decodeURIComponent(escape(atob(encoded)));
+    } catch (e) {
+        console.error("Error decodificando Base64:", e);
+        // Intento de rescate si el escape falla
+        try { return atob(encoded); } catch(e2) { return ""; }
+    }
 }
+
 
 // ===============================
 // 2. CARGAR MEDIA DESDE datos.csv
@@ -209,19 +214,20 @@ async function loadCSV() {
 const rawData = getParamData();
 
 const users = rawData
-    .split(";")
-    .filter(u => u.trim() !== "")
+    .split(";") // Separa por cada usuario
+    .map(u => u.trim()) // Limpia espacios o saltos de línea accidentales
+    .filter(u => u.length > 0) // Ignora entradas vacías (como la que queda tras el último ;)
     .map(u => {
-        const d = u.split("|");
+        const d = u.split("|"); // Separa las columnas por el Pipe
         return {
             id: d[0],
             nombre: d[1],
-            edad: +d[2],
+            edad: Number(d[2]) || 0,
             pais: d[3],
-            h_app: +d[4],
-            h_exp: +d[5],
-            db: +d[6],
-            e_aud: d[7]
+            h_app: Number(d[4]) || 0,
+            h_exp: Number(d[5]) || 0,
+            db: Number(d[6]) || 0,
+            e_aud: d[7] || ""
         };
     });
 
@@ -235,16 +241,7 @@ const metrics = [
     { label: "Edad Real", key: "edad", color: "#10b981" }
 ];
 
-let chart = new Chart(ctx, {
-    type: currentType,
-    data: { ... },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        devicePixelRatio: 2, // fuerza alta resolución
-    }
-});
-
+let chart;
 let currentType = "bar";
 let showCSV = false;
 let focusedIdx = null;
@@ -483,5 +480,4 @@ function updateSummaryFromParam(users) {
 </script>
 
 </body>
-
 </html>
