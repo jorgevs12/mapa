@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --accent: #f472b6;
+            --bg: #f8fafc;
+            --card: rgba(255, 255, 255, 0.95);
+            --text: #1e293b;
+        }
+
+        body { 
+            margin: 0; background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+            display: flex; justify-content: center; align-items: center; min-height: 100vh; 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: var(--text);
+        }
+
+        #app-container { 
+            width: 434px; height: 590px; 
+            background: var(--card); border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; overflow: hidden;
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.5);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header { 
+            padding: 20px; text-align: center;
+            background: linear-gradient(to bottom, rgba(99, 102, 241, 0.05), transparent);
+        }
+
+        .controls { 
+            display: flex; gap: 8px; padding: 0 15px 15px 15px;
+        }
+
+        button { 
+            flex: 1; border: none; background: #f1f5f9; 
+            padding: 10px; font-size: 10px; font-weight: 700; cursor: pointer; 
+            border-radius: 12px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #64748b; letter-spacing: 0.5px;
+        }
+
+        button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        button.active { 
+            background: var(--primary); color: white; 
+            box-shadow: 0 8px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .chart-area { 
+            flex: 1; padding: 10px 20px; position: relative; 
+            min-height: 250px;
+        }
+
+        .info-area { 
+            height: 190px; overflow-y: auto; 
+            background: rgba(248, 250, 252, 0.8); 
+            padding: 20px; border-top: 1px solid rgba(0,0,0,0.05);
+            scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+        }
+
+        .user-item {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 12px; padding: 12px; margin-bottom: 8px;
+            background: white; border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            animation: slideIn 0.5s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .label-val { 
+            background: #eef2ff; color: var(--primary); 
+            padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 10px;
+        }
+
+        .hint {
+            text-align: center; font-size: 9px; color: #94a3b8; margin-bottom: 10px;
+        }
+.summary-msg {
+    background: rgba(226, 232, 240,0.85);
+    padding: 12px 18px;
+    margin: 0 15px 10px 15px;
+    border-radius: 14px;
+
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.45;
+
+    color: rgb(30, 41, 59); 
+    text-align: center;
+
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.05);
+
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+
+    animation: fadeInSummary 0.6s ease-out;
+}
+
+@keyframes fadeInSummary {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div class="header">
+        <div id="summary-msg" class="summary-msg"></div>
+    </div>
+    
+    <div class="controls">
+        <button id="btn-bar" class="active" onclick="setView('bar')">BARRAS</button>
+        <button id="btn-pie" onclick="setView('pie')">CIRCULAR</button>
+        <button id="btn-csv" onclick="toggleCSV()">COMPARAR TOTAL</button>
+    </div>
+
+    <div class="hint">Pulse en una métrica para aislamiento individual</div>
+
+    <div class="chart-area">
+        <canvas id="mainChart"></canvas>
+    </div>
+
+    <div class="info-area" id="info-scroll">
+        <div id="user-list"></div>
+    </div>
+</div>
+<script>
+// ===============================
+// 1. OBTENER PARAMETRO ?data=
+// ===============================
+function getParamData() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("data") || "";
+}
+
+// ===============================
+// 2. CARGAR MEDIA DESDE datos.csv
+// ===============================
+// ===============================
+// 2. CARGAR MEDIA DESDE datos.csv (nuevo formato)
+// ===============================
+let csvMedia = { h_app: 0, h_exp: 0, db: 0, edad: 0 };
+
+async function loadCSV() {
+    const resp = await fetch("datos.csv");
+    const text = await resp.text();
+
+    const lines = text.trim().split("\n");
+
+    // Cada línea es un usuario igual que rawData
+    const csvUsers = lines.map(line => {
+        const d = line.split(",");
+        return {
+            id: d[0],
+            nombre: d[1],
+            edad: Number(d[2]),
+            pais: d[3],
+            h_app: Number(d[4]),
+            h_exp: Number(d[5]),
+            db: Number(d[6]),
+            e_aud: d[7]
+        };
+    });
+
+    // Calcular medias
+    const total = csvUsers.length;
+
+    csvMedia = {
+        h_app: csvUsers.reduce((a, b) => a + b.h_app, 0) / total,
+        h_exp: csvUsers.reduce((a, b) => a + b.h_exp, 0) / total,
+        db: csvUsers.reduce((a, b) => a + b.db, 0) / total,
+        edad: csvUsers.reduce((a, b) => a + b.edad, 0) / total
+    };
+}
+
+
+// ===============================
+// 3. PROCESAR rawData DESDE PARAMETRO
+// ===============================
+const rawData = getParamData();
+
+const users = rawData
+    .split(";")
+    .filter(u => u.trim() !== "")
+    .map(u => {
+        const d = u.split("|");
+        return {
+            id: d[0],
+            nombre: d[1],
+            edad: +d[2],
+            pais: d[3],
+            h_app: +d[4],
+            h_exp: +d[5],
+            db: +d[6],
+            e_aud: d[7]
+        };
+    });
+
+// ===============================
+// 4. CONFIGURACIÓN DE MÉTRICAS
+// ===============================
+const metrics = [
+    { label: "Horas App", key: "h_app", color: "#6366f1" },
+    { label: "Horas Exp.", key: "h_exp", color: "#f472b6" },
+    { label: "dB Prom.", key: "db", color: "#fbbf24" },
+    { label: "Edad Real", key: "edad", color: "#10b981" }
+];
+
+let chart;
+let currentType = "bar";
+let showCSV = false;
+let focusedIdx = null;
+
+// ===============================
+// 5. RENDERIZAR GRAFICO
+// ===============================
+function renderChart() {
+    const ctx = document.getElementById("mainChart").getContext("2d");
+    if (chart) chart.destroy();
+
+    const localVals = metrics.map(m =>
+        users.reduce((a, b) => a + b[m.key], 0) / users.length
+    );
+
+    const globalVals = metrics.map(m => csvMedia[m.key]);
+
+    let finalLabels, dataLocal, dataGlobal, backgroundLocal;
+
+    if (focusedIdx !== null) {
+        finalLabels = [metrics[focusedIdx].label];
+        dataLocal = [localVals[focusedIdx]];
+        dataGlobal = [globalVals[focusedIdx]];
+        backgroundLocal = [metrics[focusedIdx].color];
+    } else {
+        finalLabels = metrics.map(m => m.label);
+        dataLocal = localVals;
+        dataGlobal = globalVals;
+        backgroundLocal = metrics.map(m => m.color);
+    }
+
+    const datasets = [];
+
+    if (currentType === 'pie') {
+
+    // Caso 1: mostrando las 4 métricas → doble anillo
+    if (focusedIdx === null) {
+        datasets.push({
+            label: "Local",
+            data: dataLocal,
+            backgroundColor: backgroundLocal,
+            borderWidth: 4,
+            borderColor: "#ffffff",
+            hoverOffset: 20,
+            weight: 1 // anillo exterior
+        });
+
+        if (showCSV){
+            datasets.push({
+            label: "Total",
+            data: dataGlobal,
+            backgroundColor: dataGlobal.map(() => "#e2e8f0"),
+            borderWidth: 4,
+            borderColor: "#ffffff",
+            hoverOffset: 20,
+            weight: 0.6 // anillo interior
+        });
+        }
+        
+
+        finalLabels = metrics.map(m => m.label);
+
+    } else {
+        // Caso 2: solo 1 métrica → pie normal
+        datasets.push({
+            data: [...dataLocal, ...dataGlobal],
+            backgroundColor: [...backgroundLocal, ...dataGlobal.map(() => "#e2e8f0")],
+            borderWidth: 4,
+            borderColor: "#ffffff",
+            hoverOffset: 20
+        });
+
+        finalLabels = [
+            metrics[focusedIdx].label + " (Local)",
+            metrics[focusedIdx].label + " (Total)"
+        ];
+    }
+
+    } else {
+        datasets.push({
+            label: "Sesión",
+            data: dataLocal,
+            backgroundColor: backgroundLocal,
+            borderRadius: 6,
+            barThickness: 40
+        });
+
+        // Mostrar CSV SIEMPRE cuando hay 1 métrica
+if (showCSV || focusedIdx !== null) {
+    datasets.push({
+        label: 'Media Total',
+        data: dataGlobal,
+        backgroundColor: '#cbd5e1',
+        borderRadius: 6,
+        barThickness: 40
+    });
+}
+
+    }
+
+    chart = new Chart(ctx, {
+        type: currentType,
+        data: { labels: finalLabels, datasets: datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 1000, easing: "easeOutQuart" },
+            plugins: {
+                legend: {
+                    display: showCSV || currentType === "pie",
+                    position: "bottom",
+                    labels: { boxWidth: 10, font: { size: 10, weight: "600" } }
+                }
+            },
+            onClick: (e, elements) => {
+                if (elements.length > 0) {
+                    const idx = elements[0].index % (focusedIdx !== null ? 1 : metrics.length);
+                    const realIdx = focusedIdx !== null ? focusedIdx : idx;
+                    focusedIdx = focusedIdx === realIdx ? null : realIdx;
+                    renderChart();
+                }
+            },
+            scales:
+                currentType === "bar"
+                    ? {
+                          y: { beginAtZero: true, grid: { display: false }, border: { display: false } },
+                          x: { grid: { display: false }, border: { display: false } }
+                      }
+                    : { display: false }
+        }
+    });
+}
+
+// ===============================
+// 6. CAMBIO DE VISTA
+// ===============================
+function setView(type) {
+    currentType = type;
+    document.getElementById("btn-bar").classList.toggle("active", type === "bar");
+    document.getElementById("btn-pie").classList.toggle("active", type === "pie");
+    renderChart();
+}
+
+// ===============================
+// 7. MOSTRAR / OCULTAR CSV
+// ===============================
+function toggleCSV() {
+    showCSV = !showCSV;
+    document.getElementById("btn-csv").classList.toggle("active", showCSV);
+    renderChart();
+}
+
+// ===============================
+// 8. LISTA DE USUARIOS
+// ===============================
+function initList() {
+    const list = document.getElementById("user-list");
+    list.innerHTML = users
+        .map(
+            (u, index) => `
+        <div class="user-item" style="animation-delay: ${index * 0.1}s">
+            <span><b style="color:var(--text)">${u.nombre}</b> 
+            <small style="color:#94a3b8; display:block">ID: ${u.id} • ${u.pais}</small></span>
+            <span class="label-val">${u.e_aud}</span>
+        </div>`
+        )
+        .join("");
+}
+
+function updateSummaryFromParam(users) {
+
+    // ============================
+    // 1. Países únicos
+    // ============================
+    const paises = [...new Set(users.map(u => u.pais))];
+
+    // ============================
+    // 2. País predominante
+    // ============================
+    const paisPred = users
+        .map(u => u.pais)
+        .sort((a, b) =>
+            users.filter(x => x.pais === b).length -
+            users.filter(x => x.pais === a).length
+        )[0];
+
+    // ============================
+    // 3. Promedio de edad auditiva
+    // ============================
+    const edadesAud = users.map(u => {
+        let val = u.e_aud
+            .replace("años", "")
+            .replace("año", "")
+            .replace("<", "")
+            .replace(">", "")
+            .trim();
+
+        // Si es un rango tipo "20-30"
+        if (val.includes("-")) {
+            const [a, b] = val.split("-").map(Number);
+            return (a + b) / 2;
+        }
+
+        const num = parseInt(val);
+        return isNaN(num) ? 0 : num;
+    });
+
+    const edadAudMedia = edadesAud.reduce((a, b) => a + b, 0) / edadesAud.length;
+
+    // ============================
+    // 4. Construir mensaje
+    // ============================
+    const msg = `
+        Muestra actual de ${paises.length} países predominantemente de ${paisPred}. 
+        El promedio de audición declarado es &lt;${Math.round(edadAudMedia)}.
+    `;
+
+    // ============================
+    // 5. Insertar en el HTML
+    // ============================
+    document.getElementById("summary-msg").innerHTML = msg;
+}
+
+// ===============================
+// 9. INICIALIZACIÓN
+// ===============================
+(async () => {
+    await loadCSV();
+    initList();
+    renderChart();
+    updateSummaryFromParam(users);
+})();
+
+
+
+</script>
+
+</body>
+</html>
