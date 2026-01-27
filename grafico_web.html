@@ -118,6 +118,13 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
+        #mainChart {
+    width: 100% !important;
+    height: 100% !important;
+    image-rendering: crisp-edges;
+}
+
+
 
     </style>
 </head>
@@ -145,6 +152,8 @@
     </div>
 </div>
 <script>
+
+    
 // ===============================
 // 1. OBTENER PARAMETRO ?data=
 // ===============================
@@ -226,7 +235,16 @@ const metrics = [
     { label: "Edad Real", key: "edad", color: "#10b981" }
 ];
 
-let chart;
+let chart = new Chart(ctx, {
+    type: currentType,
+    data: { ... },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        devicePixelRatio: 2, // fuerza alta resolución
+    }
+});
+
 let currentType = "bar";
 let showCSV = false;
 let focusedIdx = null;
@@ -465,4 +483,5 @@ function updateSummaryFromParam(users) {
 </script>
 
 </body>
+
 </html>
