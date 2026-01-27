@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mapa de Calor de Ruido - Cáceres</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+  
   <style>
     body { margin: 0; padding: 0; }
     #map { width: 100%; height: 100vh; }
@@ -24,16 +26,28 @@
       margin-right: 8px; border: 1px solid #999;
     }
     #legendContent {
-  overflow: hidden;
-  max-height: 500px;   /* suficiente para todo el contenido */
-  opacity: 1;
-  transition: max-height 0.5s ease, opacity 0.5s ease;
-}
-
-#legendContent.oculto {
-  max-height: 0;
-  opacity: 0;
-}
+      overflow: hidden;
+      max-height: 500px;
+      opacity: 1;
+      transition: max-height 0.5s ease, opacity 0.5s ease;
+    }
+    #legendContent.oculto {
+      max-height: 0;
+      opacity: 0;
+    }
+    /* Botón flotante para modo edición */
+    .edit-toggle-btn {
+      position: absolute;
+      top: 10px;
+      right: 50px;
+      z-index: 1000;
+      background: white;
+      border: 2px solid #ccc;
+      padding: 8px;
+      cursor: pointer;
+      border-radius: 5px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -41,12 +55,30 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
   <script>
+    let zonaDibujada = false;
+    // --- 1. PROCESAR PARÁMETROS URL ---
+    // --- 1. PROCESAR PARÁMETROS URL ---
+    const params = new URLSearchParams(window.location.search);
+    const tipo = params.get('tipo') || 'calor';
+    const paramNombre = params.get('nombre'); // Quitamos el valor por defecto aquí para validar
+    const paramValorNum = parseFloat(params.get('valor')); // Será NaN si no hay número
+
+    // --- 2. LÓGICA DE COLORES POR DB ---
+    function getColorByDB(db) {
+      if (db < 60) return '#0078ff';
+      if (db < 75) return '#64ff8c';
+      if (db < 90) return '#ffff78';
+      if (db < 100) return '#ffb450';
+      return '#ff5050';
+    }
+
     const map = L.map('map').setView([39.474, -6.372], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // Datos de ejemplo
+    // --- 3. GESTIÓN DE CAPAS DE CALOR ---
     function generarRuidoNatural(cantidad = 3000) {
       const puntos = [];
       const centroLat = 39.474, centroLng = -6.372;
@@ -64,9 +96,8 @@
     }
 
     const heatData = generarRuidoNatural();
-
-    // Clasificación
     const layers = { bajo: [], moderado: [], alto: [], muyAlto: [], extremo: [] };
+    
     heatData.forEach(p => {
       const i = p[2];
       if (i < 0.3) layers.bajo.push(p);
@@ -85,46 +116,138 @@
     };
 
     const heatLayers = {};
+    const heatGroup = L.layerGroup();
+
     Object.keys(layers).forEach(level=>{
       heatLayers[level] = L.heatLayer(layers[level], {
         radius: 35, blur: 35, minOpacity: 0.3, gradient: gradients[level]
       });
+      if (tipo === 'calor' || tipo === 'mixto') {
+        heatLayers[level].addTo(heatGroup);
+      }
     });
 
-    // Orden jerárquico fijo: bajo → moderado → alto → muyAlto → extremo
+    if (tipo !== 'alerta') heatGroup.addTo(map);
+
     const layerOrder = ["bajo","moderado","alto","muyAlto","extremo"];
     const activeLayers = new Set(layerOrder);
 
-    // Añadir todas en orden inicial
-    layerOrder.forEach(l => heatLayers[l].addTo(map));
+    // --- 4. MODO ALERTA (DIBUJO) ---
+    const drawnItems = new L.FeatureGroup().addTo(map);
+    
+    if (tipo === 'alerta' || tipo === 'mixto') {
+      const drawControl = new L.Control.Draw({
+        edit: { featureGroup: drawnItems },
+        draw: { polygon: true, polyline: false, rectangle: true, circle: false, marker: false, circlemarker: false }
+      });
+      map.addControl(drawControl);
 
-    // Función para reapilar en orden jerárquico
-    function reapilarCapas() {
-      layerOrder.forEach(l => {
-        if (activeLayers.has(l)) {
-          map.removeLayer(heatLayers[l]);
-          heatLayers[l].addTo(map);
+      map.on(L.Draw.Event.CREATED, function (event) {
+        // --- NUEVA VALIDACIÓN DE ENTRADA ---
+        // Si no hay valor o nombre en la URL, no permitimos guardar
+        if (!paramValorNum || isNaN(paramValorNum) || !paramNombre) {
+            alert("⚠️ Error: No se puede guardar la alerta porque faltan datos (nombre o valor dB) en la URL.");
+            // Opcional: eliminar la capa dibujada para que no confunda
+            map.removeLayer(event.layer); 
+            return; 
         }
+
+        // Si ya se dibujó una, bloqueamos (lógica anterior)
+        if (zonaDibujada) return;
+
+        const layer = event.layer;
+        const color = getColorByDB(paramValorNum);
+        
+        // ... (resto de tu lógica de guardado: LocalStorage, Popup, etc.) ...
+        
+        const nuevaAlerta = {
+          nombre: paramNombre,
+          valor: paramValorNum,
+          color: color,
+          latlngs: layer.getLatLngs()
+        };
+
+        layer.setStyle({ color: color, fillColor: color, fillOpacity: 0.5 });
+        drawnItems.addLayer(layer);
+
+        // Guardar y Bloquear
+        const alertasLocales = JSON.parse(localStorage.getItem('mis_alertas') || '[]');
+        alertasLocales.push(nuevaAlerta);
+        localStorage.setItem('mis_alertas', JSON.stringify(alertasLocales));
+
+        crearPopupConBorrado(layer, nuevaAlerta);
+        
+        zonaDibujada = true;
+        if (typeof drawControl !== 'undefined') map.removeControl(drawControl);
+
+        // Limpiar URL
+        const nuevaURL = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, nuevaURL);
       });
     }
 
-    // Leyenda
+// --- 5. BOTÓN DE EDICIÓN (Gestor de visibilidad total) ---
+    if (tipo === 'alerta' || tipo === 'mixto') {
+      const btn = document.createElement('button');
+      btn.className = 'edit-toggle-btn';
+      
+      // Estado inicial
+      const estaActivo = map.hasLayer(heatGroup);
+      btn.innerHTML = estaActivo ? 'Desactivar Calor' : 'Activar Calor';
+      document.body.appendChild(btn);
+
+      btn.onclick = () => {
+        const legendDiv = document.querySelector('.leaflet-control-legend');
+        
+        if (map.hasLayer(heatGroup)) {
+          // 1. Quitar el grupo principal
+          map.removeLayer(heatGroup);
+          
+          // 2. IMPORTANTE: Quitar también las capas individuales por si el usuario interactuó con la leyenda
+          Object.keys(heatLayers).forEach(level => {
+            map.removeLayer(heatLayers[level]);
+          });
+
+          btn.innerHTML = 'Activar Calor';
+          if (legendDiv) legendDiv.style.display = 'none';
+        } else {
+          // 1. Volver a añadir el grupo principal
+          heatGroup.addTo(map);
+          
+          // 2. Volver a añadir las capas que estaban marcadas como activas en la leyenda
+          activeLayers.forEach(level => {
+            heatLayers[level].addTo(map);
+          });
+
+          btn.innerHTML = 'Desactivar Calor';
+          if (legendDiv) legendDiv.style.display = 'block';
+        }
+      };
+    }
+
+    // --- 6. LEYENDA ---
+   // --- 6. LEYENDA ---
     const legend = L.control({position:'bottomright'});
+    
     legend.onAdd = function(){
       const div = L.DomUtil.create('div','leaflet-control-legend');
+      // Le damos un ID para manipularla fácilmente
+      div.id = 'legend-container'; 
+      
       div.innerHTML = `
         <h4 style="margin:0; display:flex; justify-content:space-between; align-items:center;">
-      Niveles de ruido
-      <button id="toggleLegend" style="margin-left:8px; font-size:11px;">–</button>
-    </h4>
-    <div id="legendContent">
-        <div class="color-item" data-level="bajo"><div class="color-box" style="background:#0078ff"></div>(&lt;60 dB)</div>
-        <div class="color-item" data-level="moderado"><div class="color-box" style="background:#64ff8c"></div>(60–75 dB)</div>
-        <div class="color-item" data-level="alto"><div class="color-box" style="background:#ffff78"></div>(75–90 dB)</div>
-        <div class="color-item" data-level="muyAlto"><div class="color-box" style="background:#ffb450"></div>(90–100 dB)</div>
-        <div class="color-item" data-level="extremo"><div class="color-box" style="background:#ff5050"></div>(&gt;100 dB)</div>
-    </div>
-        `;
+          Niveles de ruido
+          <button id="toggleLegend" style="margin-left:8px; font-size:11px;">–</button>
+        </h4>
+        <div id="legendContent">
+            <div class="color-item" data-level="bajo"><div class="color-box" style="background:#0078ff"></div>(<60 dB)</div>
+            <div class="color-item" data-level="moderado"><div class="color-box" style="background:#64ff8c"></div>(60–75 dB)</div>
+            <div class="color-item" data-level="alto"><div class="color-box" style="background:#ffff78"></div>(75–90 dB)</div>
+            <div class="color-item" data-level="muyAlto"><div class="color-box" style="background:#ffb450"></div>(90–100 dB)</div>
+            <div class="color-item" data-level="extremo"><div class="color-box" style="background:#ff5050"></div>(>100 dB)</div>
+        </div>`;
+
+      // Lógica de filtrado de capas (la que ya tenías)
       div.querySelectorAll('.color-item').forEach(item=>{
         item.addEventListener('click',()=>{
           const level = item.getAttribute('data-level');
@@ -134,24 +257,121 @@
             item.classList.add('inactive');
           } else {
             activeLayers.add(level);
-            reapilarCapas(); // reordenar siempre en jerarquía fija
+            layerOrder.forEach(l => {
+              if (activeLayers.has(l)) {
+                map.removeLayer(heatLayers[l]);
+                heatLayers[l].addTo(map);
+              }
+            });
             item.classList.remove('inactive');
           }
         });
       });
-      const toggleBtn = div.querySelector('#toggleLegend');
-  const content = div.querySelector('#legendContent');
 
-  toggleBtn.addEventListener('click', () => {
-    content.classList.toggle('oculto');
-    toggleBtn.textContent = content.classList.contains('oculto') ? '+' : '–';
-  });
+      const toggleBtn = div.querySelector('#toggleLegend');
+      const content = div.querySelector('#legendContent');
+      toggleBtn.addEventListener('click', () => {
+        content.classList.toggle('oculto');
+        toggleBtn.textContent = content.classList.contains('oculto') ? '+' : '–';
+      });
+
       return div;
     };
+
+    // FUNCIÓN PARA ACTUALIZAR LA VISIBILIDAD DE LA LEYENDA
+    function actualizarVisibilidadLeyenda() {
+      const legendDiv = document.getElementById('legend-container');
+      if (!legendDiv) return;
+
+      if (map.hasLayer(heatGroup)) {
+        legendDiv.style.display = 'block';
+      } else {
+        legendDiv.style.display = 'none';
+      }
+    }
+
+    // Añadir la leyenda inicialmente
     legend.addTo(map);
-    
+    // Llamar al inicio para comprobar si debe estar oculta (por el tipo=alerta)
+    actualizarVisibilidadLeyenda();
+    // --- 7. CARGAR ALERTAS DESDE ARCHIVO EXTERNO ---
+    function cargarAlertasDesdeArchivo() {
+      fetch('alertas.json') // Busca el archivo en tu repositorio de GitHub
+        .then(response => {
+          if (!response.ok) throw new Error("No se encontró alertas.json");
+          return response.json();
+        })
+        .then(alertas => {
+          alertas.forEach(data => {
+            // Crear el área con las coordenadas del archivo
+            const layer = L.polygon(data.latlngs, {
+              color: data.color || getColorByDB(data.valor),
+              fillColor: data.color || getColorByDB(data.valor),
+              fillOpacity: 0.5
+            });
+            
+            layer.bindPopup(`<b>${data.nombre}</b><br>Nivel: ${data.valor} dB`);
+            drawnItems.addLayer(layer);
+          });
+        })
+        .catch(err => console.log("Nota: No hay alertas.json o está vacío."));
+    }
+
+    // --- 8. CARGAR ALERTAS DESDE LOCALSTORAGE ---
+    function cargarAlertasLocales() {
+      const locales = JSON.parse(localStorage.getItem('mis_alertas') || '[]');
+      
+      locales.forEach(data => {
+        const layer = L.polygon(data.latlngs, {
+          color: data.color,
+          fillColor: data.color,
+          fillOpacity: 0.5
+        });
+        
+        drawnItems.addLayer(layer);
+        // Añadir el popup con botón a las zonas cargadas
+        crearPopupConBorrado(layer, data);
+      });
+    }
+
+    // Ejecutar ambas cargas al iniciar
+    cargarAlertasDesdeArchivo(); // Carga las de GitHub
+    cargarAlertasLocales();      // Carga las tuyas personales
+    // Función para borrar una alerta específica del LocalStorage
+    function borrarAlertaDeStorage(datosParaBorrar) {
+        let alertasLocales = JSON.parse(localStorage.getItem('mis_alertas') || '[]');
+        
+        // Filtramos: nos quedamos con todas MENOS la que queremos borrar
+        // Comparamos el nombre y el primer punto de las coordenadas para estar seguros
+        alertasLocales = alertasLocales.filter(a => {
+            return !(a.nombre === datosParaBorrar.nombre && 
+                     JSON.stringify(a.latlngs[0]) === JSON.stringify(datosParaBorrar.latlngs[0]));
+        });
+
+        localStorage.setItem('mis_alertas', JSON.stringify(alertasLocales));
+    }
+    function crearPopupConBorrado(layer, datosAlerta) {
+        const contenedor = document.createElement('div');
+        contenedor.innerHTML = `
+            <b>${datosAlerta.nombre}</b><br>
+            Nivel: ${datosAlerta.valor} dB<br><br>
+            <button id="btn-borrar-${Math.random().toString(36).substr(2, 9)}" 
+                    style="background:#ff5050; color:white; border:none; padding:5px; border-radius:3px; cursor:pointer; width:100%;">
+                Eliminar Zona
+            </button>
+        `;
+
+        const boton = contenedor.querySelector('button');
+        boton.onclick = () => {
+            if (confirm("¿Seguro que quieres eliminar esta zona?")) {
+                map.removeLayer(layer); // Quitar del mapa
+                borrarAlertaDeStorage(datosAlerta); // Quitar de LocalStorage
+            }
+        };
+
+        layer.bindPopup(contenedor);
+    }
 
   </script>
 </body>
 </html>
-
