@@ -22,18 +22,29 @@
         }
 
         #app-container { 
-            width: 434px; height: 590px; 
-            background: var(--card); border-radius: 24px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
-            display: flex; flex-direction: column; overflow: hidden;
-            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.5);
-            animation: fadeIn 0.8s ease-out;
-        }
+    width: 434px; 
+    height: 590px; 
+    background: var(--card); 
+    border-radius: 24px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+    display: flex; 
+    flex-direction: column; 
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.5);
+    
+    /* MODIFICACIONES PARA NITIDEZ: */
+    backdrop-filter: none; /* 1. El blur de fondo a veces empaña el frente */
+    transform: translateZ(0); /* 2. Fuerza renderizado 2D nítido */
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased; /* 3. Suavizado de fuentes */
+}
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+/* 4. Evita que la animación termine en un estado de "medio píxel" */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); } 
+}
+
 
         .header { 
             padding: 20px; text-align: center;
@@ -148,24 +159,10 @@
 // ===============================
 // 1. OBTENER PARAMETRO ?data=
 // ===============================
-// 1. OBTENER PARAMETRO ?data= Y DECODIFICAR BASE64
-// ===============================
 function getParamData() {
     const params = new URLSearchParams(window.location.search);
-    const encoded = params.get("data") || "";
-
-    if (!encoded) return "";
-
-    try {
-        // Decodifica Base64 y maneja correctamente caracteres UTF-8 (tildes, eñes, etc.)
-        return decodeURIComponent(escape(atob(encoded)));
-    } catch (e) {
-        console.error("Error decodificando Base64:", e);
-        // Intento de rescate si el escape falla
-        try { return atob(encoded); } catch(e2) { return ""; }
-    }
+    return params.get("data") || "";
 }
-
 
 // ===============================
 // 2. CARGAR MEDIA DESDE datos.csv
@@ -213,23 +210,41 @@ async function loadCSV() {
 // ===============================
 const rawData = getParamData();
 
-const users = rawData
-    .split(";") // Separa por cada usuario
-    .map(u => u.trim()) // Limpia espacios o saltos de línea accidentales
-    .filter(u => u.length > 0) // Ignora entradas vacías (como la que queda tras el último ;)
-    .map(u => {
-        const d = u.split("|"); // Separa las columnas por el Pipe
+let allCsvUsers = []; // Base de datos completa
+let users = [];       // Usuarios filtrados por ID
+
+async function loadCSV() {
+    const resp = await fetch("datos.csv");
+    const text = await resp.text();
+    const lines = text.trim().split("\n");
+
+    allCsvUsers = lines.map(line => {
+        const d = line.split(",");
         return {
-            id: d[0],
+            id: d[0].trim(),
             nombre: d[1],
-            edad: Number(d[2]) || 0,
+            edad: Number(d[2]),
             pais: d[3],
-            h_app: Number(d[4]) || 0,
-            h_exp: Number(d[5]) || 0,
-            db: Number(d[6]) || 0,
-            e_aud: d[7] || ""
+            h_app: Number(d[4]),
+            h_exp: Number(d[5]),
+            db: Number(d[6]),
+            e_aud: d[7]
         };
     });
+
+    // Calcular medias globales del CSV
+    const total = allCsvUsers.length;
+    csvMedia = {
+        h_app: allCsvUsers.reduce((a, b) => a + b.h_app, 0) / total,
+        h_exp: allCsvUsers.reduce((a, b) => a + b.h_exp, 0) / total,
+        db: allCsvUsers.reduce((a, b) => a + b.db, 0) / total,
+        edad: allCsvUsers.reduce((a, b) => a + b.edad, 0) / total
+    };
+
+    // FILTRADO: Buscar los datos de los IDs recibidos por URL
+    const ids = getParamData().split(";").filter(id => id.trim() !== "");
+    users = ids.map(id => allCsvUsers.find(u => u.id === id)).filter(u => u !== undefined);
+}
 
 // ===============================
 // 4. CONFIGURACIÓN DE MÉTRICAS
@@ -468,14 +483,28 @@ function updateSummaryFromParam(users) {
 // ===============================
 // 9. INICIALIZACIÓN
 // ===============================
+// ===============================
+// 9. INICIALIZACIÓN
+// ===============================
 (async () => {
-    await loadCSV();
-    initList();
-    renderChart();
-    updateSummaryFromParam(users);
+    await loadCSV(); // Carga el CSV y luego filtra los IDs de la URL
+    if (users.length > 0) {
+        initList();
+        renderChart();
+        updateSummaryFromParam(users);
+    } else {
+        document.getElementById("summary-msg").innerHTML = "No se encontraron IDs válidos.";
+    }
 })();
 
-
+// Forzar a que el contenedor esté en píxeles enteros
+window.onload = function() {
+    const container = document.getElementById('app-container');
+    const rect = container.getBoundingClientRect();
+    if (rect.top % 1 !== 0) {
+        container.style.marginTop = (Math.ceil(rect.top) - rect.top) + "px";
+    }
+};
 
 </script>
 
