@@ -15,7 +15,7 @@
         }
 
         body { 
-            margin: 0;
+            margin: 0; background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
             display: flex; justify-content: center; align-items: center; min-height: 100vh; 
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             color: var(--text);
@@ -165,9 +165,6 @@ function getParamData() {
 }
 
 // ===============================
-// 2. CARGAR MEDIA DESDE datos.csv
-// ===============================
-// ===============================
 // 2. CARGAR MEDIA DESDE datos.csv (nuevo formato)
 // ===============================
 let csvMedia = { h_app: 0, h_exp: 0, db: 0, edad: 0 };
@@ -242,7 +239,11 @@ async function loadCSV() {
     };
 
     // FILTRADO: Buscar los datos de los IDs recibidos por URL
-    const ids = getParamData().split(";").filter(id => id.trim() !== "");
+    const ids = getParamData()
+        .split(";")
+        .filter(id => id.trim() !== "")
+        .map(id => id.trim().padStart(3, '0')); // <--- ESTA ES LA CLAVE: Convierte "1" en "001"
+
     users = ids.map(id => allCsvUsers.find(u => u.id === id)).filter(u => u !== undefined);
 }
 
@@ -483,9 +484,6 @@ function updateSummaryFromParam(users) {
 // ===============================
 // 9. INICIALIZACIÓN
 // ===============================
-// ===============================
-// 9. INICIALIZACIÓN
-// ===============================
 (async () => {
     await loadCSV(); // Carga el CSV y luego filtra los IDs de la URL
     if (users.length > 0) {
@@ -509,5 +507,4 @@ window.onload = function() {
 </script>
 
 </body>
-
 </html>
