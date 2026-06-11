@@ -49,28 +49,97 @@
     <div id="map"></div>
 
 <script>
+
     // 1. Coordenadas aproximadas de las zonas de Cáceres
-    const coordenadasCaceres = {
-        "Plaza Mayor": [39.4745, -6.3713],
-        "La Madrila": [39.4705, -6.3812],
-        "Ruta de la Plata": [39.4678, -6.3850],
-        "Centro Histórico": [39.4735, -6.3705],
-        "Aldea Moret": [39.4580, -6.3980],
-        "Mejostilla": [39.4930, -6.3680],
-        "Universidad": [39.4780, -6.3420]
-    };
+const coordenadasCaceres = {
+    // Tus 7 zonas originales intactas
+    "Plaza Mayor": [39.4745, -6.3713],
+    "La Madrila": [39.4705, -6.3812],
+    "Ruta de la Plata": [39.4678, -6.3850],
+    "Centro Histórico": [39.4735, -6.3705],
+    "Aldea Moret": [39.4580, -6.3980],
+    "Mejostilla": [39.4930, -6.3680],
+    "Universidad": [39.4780, -6.3420],
+        "Paseo de Cánovas": [39.4702, -6.3758],
+    "Nuevo Cáceres": [39.4622, -6.3745],
+    "Estación de Autobuses y Trenes": [39.4645, -6.3892],
+    "Recinto Ferial": [39.4897, -6.3787],
+    "Macondo y El Peru": [39.4670, -6.3960],
+    "Casa Plata": [39.4540, -6.3710]
+};
 
     // 2. Datos JSON (Extraídos de tus archivos generados)
     // =========================================================================
     // INICIO CAMBIO: LEER ARCHIVO JSON EXTERNO
     // =========================================================================
-    fetch('datos_mapa.json')
-        .then(response => response.json())
-        .then(datosRuido => {
+    // =========================================================================
+    // MODIFICACIÓN 1: CARGA EN PARALELO DE AMBOS JSON
+    // =========================================================================
+    Promise.all([
+        fetch('datos_mapa.json').then(res => res.json()),
+        fetch('datos_alertas.json').then(res => res.json()).catch(err => {
+            console.warn("No se encontró datos_alertas.json o está vacío. Se usará mapa sin alertas.");
+            return []; // Retorna array/objeto vacío para que no rompa el código
+        })
+    ])
+    .then(([datosRuido, datosAlertasRaw]) => {
 
+        // Ejecutamos el mapeador flexible (Modificación 2)
+        const alertasPredeterminadas = procesarJsonAlertas(datosAlertasRaw);
+        // =========================================================================
+        // MODIFICACIÓN 2: ADAPTADOR UNIVERSAL DE JSON DE ALERTAS
+        // =========================================================================
+        function procesarJsonAlertas(jsonOriginal) {
+            const mapaResultante = {};
+
+            // CASO A: Si el JSON es un Array de objetos [ {zona: "La Madrila", info: "..."}, ... ]
+            if (Array.isArray(jsonOriginal)) {
+                jsonOriginal.forEach(item => {
+                    // Busca dinámicamente qué propiedad contiene el nombre de la zona
+                    const campoZona = Object.keys(item).find(key => 
+                        ['zona', 'ubicacion', 'nombre', 'place', 'location'].includes(key.toLowerCase())
+                    );
+                    if (campoZona && item[campoZona]) {
+                        mapaResultante[item[campoZona]] = item; 
+                    }
+                });
+            } 
+            // CASO B: Si el JSON ya es un Objeto directo { "La Madrila": { ... }, "Plaza Mayor": { ... } }
+            else if (typeof jsonOriginal === 'object' && jsonOriginal !== null) {
+                return jsonOriginal; // Ya viene indexado por zona, lo usamos tal cual
+            }
+
+            return mapaResultante;
+        }
+
+        // Función auxiliar para pintar CUALQUIER variable del JSON en el Tooltip de forma bonita
+        function generarHtmlDesconocido(objetoAlerta) {
+            if (!objetoAlerta || typeof objetoAlerta !== 'object') return '';
+            
+            let html = '<div style="text-align: left; font-size: 12px; margin-top: 6px; padding: 6px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffeeba; color: #856404;">';
+            html += '<strong>⚠️ DETALLES DE ALERTA:</strong><br>';
+            
+            Object.keys(objetoAlerta).forEach(propiedad => {
+                // Saltamos la propiedad de la zona para no repetirla en el tooltip
+                if (['zona', 'ubicacion', 'nombre', 'place'].includes(propiedad.toLowerCase())) return;
+
+                let claveLimpia = propiedad.replace(/_/g, ' ');
+                claveLimpia = claveLimpia.charAt(0).toUpperCase() + claveLimpia.slice(1);
+                
+                let valor = objetoAlerta[propiedad];
+                if (typeof valor === 'object') valor = JSON.stringify(valor);
+                
+                html += `<b>${claveLimpia}:</b> ${valor}<br>`;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+        // 3. Capturar Parámetros de la URL (A partir de aquí tu código sigue igual...)
+        const urlParams = new URLSearchParams(window.location.search);
+        const modoUrl = urlParams.get('modo') || 'datos'; // datos, mixto, alertas
     // 3. Capturar Parámetros de la URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const modoUrl = urlParams.get('modo') || 'datos'; // datos, mixto, alertas
     const fechaInicioStr = urlParams.get('fecha_inicio'); // ej: "June 12 2026"
     const fechaFinStr = urlParams.get('fecha_fin'); // ej: "June 14 2026"
     const horaInicioStr = urlParams.get('hora_inicio') || '00:00'; 
@@ -175,6 +244,8 @@
         attribution: '&copy; OpenStreetMap Cáceres'
     }).addTo(map);
 
+    // --- NUEVO: MAPA DE ALERTAS PREDETERMINADAS ---
+
     // Definir colores del Heatmap según dB
     function getColor(d) {
         return d > 70 ? '#d73027' :  // Rojo (Alerta/Muy ruidoso)
@@ -183,57 +254,123 @@
                         '#1a9850';   // Verde (Tranquilo)
     }
 
-    // 7. Dibujar las zonas en el mapa
-    Object.keys(statsPorZona).forEach(zona => {
-        if (coordenadasCaceres[zona]) {
-            let stats = statsPorZona[zona];
-            let media = stats.sumaPromedio / stats.count;
+    // --- NUEVO: OBTENER TODAS LAS ZONAS ÚNICAS (De los datos + De las alertas fijas) ---
 
-            let circle = L.circle(coordenadasCaceres[zona], {
-                color: getColor(media),
-                fillColor: getColor(media),
-                fillOpacity: 0.6,
-                radius: 400 // Tamaño de la zona
-            }).addTo(map);
+   // =========================================================================
+    // MODIFICACIÓN 3: DIBUJAR ZONAS COMBINANDO AMBOS ESQUEMAS
+    // =========================================================================
+    
+    // Unimos las zonas que tienen datos de ruido + las que tienen alertas del nuevo JSON
+    const todasLasZonas = new Set([...Object.keys(statsPorZona), ...Object.keys(alertasPredeterminadas)]);
 
-            // Tooltip que aparece al pasar el ratón (Hover)
-            let tooltipContent = `
-                <div style="text-align: center;">
-                    <strong style="font-size:16px;">${zona}</strong><br><hr style="margin:5px 0;">
-                    <b>Media:</b> ${media.toFixed(1)} dB<br>
-                    <b>Máximo:</b> ${stats.max.toFixed(1)} dB<br>
-                    <b>Mínimo:</b> ${stats.min.toFixed(1)} dB<br>
-                    <small>(${stats.count} registros)</small>
-                </div>
-            `;
-            circle.bindTooltip(tooltipContent, { sticky: true, className: 'custom-tooltip' });
+    todasLasZonas.forEach(zona => {
+        if (!coordenadasCaceres[zona]) return; // Si la zona no tiene coordenadas, saltar
+
+        const tieneDatos = !!statsPorZona[zona];
+        const tieneAlertaFija = !!alertasPredeterminadas[zona];
+        
+        let stats = statsPorZona[zona] || { sumaPromedio: 0, count: 0, min: 0, max: 0 };
+        let media = tieneDatos ? (stats.sumaPromedio / stats.count) : 0;
+
+        // Estilos base por defecto (Modo Datos)
+        let colorCirculo = getColor(media);
+        let rellenoCirculo = getColor(media);
+        let opacidadRelleno = 0.6;
+        let pesoBorde = 1;
+        let radioCirculo = 400;
+        
+        // Genera el HTML dinámicamente con lo que sea que venga en el JSON de alertas
+        let contenidoAlertaHtml = tieneAlertaFija ? generarHtmlDesconocido(alertasPredeterminadas[zona]) : '';
+
+        // INTERRUPTORES DE MODO (URL)
+        if (modoUrl === 'alertas') {
+            if (!tieneAlertaFija) return; // Si no hay alerta en esta zona, no se pinta
+            colorCirculo = '#b2182b';
+            rellenoCirculo = '#d73027';
+            opacidadRelleno = 0.8;
+            pesoBorde = 3;
+        } 
+        else if (modoUrl === 'mixto') {
+            if (tieneAlertaFija) {
+                colorCirculo = '#800026'; // Resaltado exterior burdeos
+                pesoBorde = 4;
+                radioCirculo = 460; // Un poco más grande para contraste
+            }
+            if (!tieneDatos && tieneAlertaFija) {
+                rellenoCirculo = '#d73027'; // Si está en alerta pero no hay sensores, va en rojo suave
+                opacidadRelleno = 0.3;
+            }
+        } 
+        else {
+            // Modo 'datos' estándar: Ignoramos la alerta si la zona no tiene registros en el JSON de ruido
+            if (!tieneDatos) return;
         }
+
+        // Pintar en Leaflet
+        let circle = L.circle(coordenadasCaceres[zona], {
+            color: colorCirculo,
+            fillColor: rellenoCirculo,
+            fillOpacity: opacidadRelleno,
+            weight: pesoBorde,
+            radius: radioCirculo
+        }).addTo(map);
+
+        let datosJsonHtml = tieneDatos ? `
+            <b>Media:</b> ${media.toFixed(1)} dB<br>
+            <b>Máximo:</b> ${stats.max.toFixed(1)} dB<br>
+            <b>Mínimo:</b> ${stats.min.toFixed(1)} dB<br>
+            <small>(${stats.count} registros)</small>
+        ` : `<span style="color:#666; font-style:italic">Sin registros de sensores en este tramo.</span>`;
+
+        let tooltipContent = `
+            <div style="text-align: center; width: 220px;">
+                <strong style="font-size:16px;">${zona}</strong><br><hr style="margin:5px 0;">
+                ${datosJsonHtml}
+                ${contenidoAlertaHtml}
+            </div>
+        `;
+        
+        circle.bindTooltip(tooltipContent, { sticky: true, className: 'custom-tooltip' });
     });
 
-    // 8. Crear la Leyenda
+    // 8. Crear la Leyenda Dinámica según el modo
     const legend = L.control({position: 'bottomright'});
     legend.onAdd = function (map) {
         const div = L.DomUtil.create('div', 'info legend');
-        const grades = [0, 50, 60, 70];
-        const labels = ['Tranquilo (<50 dB)', 'Moderado (50-60 dB)', 'Ruidoso (60-70 dB)', 'Alerta (>70 dB)'];
-
-        div.innerHTML += '<strong>Nivel Acústico</strong><br>';
-        for (let i = 0; i < grades.length; i++) {
-            div.innerHTML +=
-                '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
-                labels[i] + '<br>';
+        
+        if (modoUrl === 'alertas') {
+            div.innerHTML = `
+                <strong>Leyenda: Alertas Activas</strong><br>
+                <i style="background:#d73027; border: 2px solid #b2182b;"></i> Zona bajo Alerta Crítica<br>
+                <small style="color:#666;">Filtros de sensores desactivados</small>
+            `;
+        } else if (modoUrl === 'mixto') {
+            div.innerHTML = `
+                <strong>Mapa Mixto (Sensores + Alertas)</strong><br>
+                <i style="background:#d73027"></i> >70 dB<br>
+                <i style="background:#fc8d59"></i> 60-70 dB<br>
+                <i style="background:#fee08b"></i> 50-60 dB<br>
+                <i style="background:#1a9850"></i> <50 dB<br>
+                <hr style="margin:5px 0;">
+                <span style="display:inline-block; width:14px; height:14px; border:3px solid #800026; border-radius:50%; margin-right:5px;"></span> <b>Zona con Alerta Fija</b>
+            `;
+        } else {
+            // Modo datos normal
+            const grades = [0, 50, 60, 70];
+            const labels = ['Tranquilo (<50 dB)', 'Moderado (50-60 dB)', 'Ruidoso (60-70 dB)', 'Alerta (>70 dB)'];
+            div.innerHTML += '<strong>Nivel Acústico (Sensores)</strong><br>';
+            for (let i = 0; i < grades.length; i++) {
+                div.innerHTML += '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' + labels[i] + '<br>';
+            }
         }
         return div;
     };
     legend.addTo(map);
-    })
-        .catch(error => {
-            console.error("Error crítico al cargar el archivo JSON:", error);
-        });
-    // =========================================================================
-    // FIN CAMBIO
-    // =========================================================================
 
+    }) // Fin del .then(datosRuido => {
+    .catch(error => {
+        console.error("Error crítico al cargar el archivo JSON:", error);
+    });
 </script>
 </body>
 </html>>
