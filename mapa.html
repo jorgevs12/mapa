@@ -1,377 +1,246 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mapa de Calor de Ruido - Cáceres</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
-  
-  <style>
-    body { margin: 0; padding: 0; }
-    #map { width: 100%; height: 100vh; }
-    .leaflet-control-legend {
-      background: rgba(255, 255, 255, 0.92);
-      padding: 6px 10px;
-      border-radius: 10px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.25);
-      font-family: sans-serif;
-      font-size: 13px;
-      max-width: 160px;
-    }
-    .color-item { display: flex; align-items: center; margin: 6px 0; cursor: pointer; }
-    .color-item.inactive { opacity: 0.4; }
-    .color-box {
-      width: 24px; height: 18px; border-radius: 4px;
-      margin-right: 8px; border: 1px solid #999;
-    }
-    #legendContent {
-      overflow: hidden;
-      max-height: 500px;
-      opacity: 1;
-      transition: max-height 0.5s ease, opacity 0.5s ease;
-    }
-    #legendContent.oculto {
-      max-height: 0;
-      opacity: 0;
-    }
-    /* Botón flotante para modo edición */
-    .edit-toggle-btn {
-      position: absolute;
-      top: 10px;
-      right: 50px;
-      z-index: 1000;
-      background: white;
-      border: 2px solid #ccc;
-      padding: 8px;
-      cursor: pointer;
-      border-radius: 5px;
-      font-weight: bold;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Ruido - Cáceres</title>
+    
+    <!-- Librería Leaflet para el mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        #map { width: 100vw; height: 100vh; }
+        
+        /* Estilos de la Leyenda */
+        .info.legend {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            line-height: 1.5;
+            color: #333;
+        }
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.8;
+            border-radius: 50%;
+        }
+        
+        /* Panel flotante de información de parámetros */
+        #panel-info {
+            position: absolute;
+            top: 10px;
+            left: 50px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            z-index: 1000;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        }
+    </style>
 </head>
 <body>
-  <div id="map"></div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <div id="panel-info">
+        <strong>Filtros Actuales:</strong><br>
+        <span id="txt-modo">Modo: Todos</span><br>
+        <span id="txt-fecha">Fecha: Todas</span><br>
+        <span id="txt-hora">Horas: 00:00 - 23:59</span>
+    </div>
 
-  <script>
-    let zonaDibujada = false;
-    // --- 1. PROCESAR PARÁMETROS URL ---
-    // --- 1. PROCESAR PARÁMETROS URL ---
-    const params = new URLSearchParams(window.location.search);
-    const tipo = params.get('tipo') || 'calor';
-    const paramNombre = params.get('nombre'); // Quitamos el valor por defecto aquí para validar
-    const paramValorNum = parseFloat(params.get('valor')); // Será NaN si no hay número
+    <div id="map"></div>
 
-    // --- 2. LÓGICA DE COLORES POR DB ---
-    function getColorByDB(db) {
-      if (db < 60) return '#0078ff';
-      if (db < 75) return '#64ff8c';
-      if (db < 90) return '#ffff78';
-      if (db < 100) return '#ffb450';
-      return '#ff5050';
-    }
-
-    const map = L.map('map').setView([39.474, -6.372], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-    // --- 3. GESTIÓN DE CAPAS DE CALOR ---
-    function generarRuidoNatural(cantidad = 3000) {
-      const puntos = [];
-      const centroLat = 39.474, centroLng = -6.372;
-      for (let i = 0; i < cantidad; i++) {
-        const radio = Math.random() * 0.09;
-        const angulo = Math.random() * 2 * Math.PI;
-        const lat = centroLat + radio * Math.cos(angulo);
-        const lng = centroLng + radio * Math.sin(angulo) * 1.4;
-        let intensidad = Math.random();
-        if (Math.random() < 0.2) intensidad += 0.3;
-        intensidad = Math.min(1, intensidad);
-        puntos.push([lat, lng, intensidad]);
-      }
-      return puntos;
-    }
-
-    const heatData = generarRuidoNatural();
-    const layers = { bajo: [], moderado: [], alto: [], muyAlto: [], extremo: [] };
-    
-    heatData.forEach(p => {
-      const i = p[2];
-      if (i < 0.3) layers.bajo.push(p);
-      else if (i < 0.5) layers.moderado.push(p);
-      else if (i < 0.7) layers.alto.push(p);
-      else if (i < 0.85) layers.muyAlto.push(p);
-      else layers.extremo.push(p);
-    });
-
-    const gradients = {
-      bajo: {0.0:'rgba(0,120,255,0)',1.0:'rgba(0,120,255,1)'},
-      moderado:{0.0:'rgba(100,255,140,0)',1.0:'rgba(53,255,91,0.2)'},
-      alto:{0.0:'rgba(255,255,120,0)',1.0:'rgba(255,255,120,0.2)'},
-      muyAlto:{0.0:'rgba(255,180,80,0)',1.0:'rgba(255,180,80,0.2)'},
-      extremo:{0.0:'rgba(255,80,80,0)',1.0:'rgba(255,80,80,0.2)'}
+<script>
+    // 1. Coordenadas aproximadas de las zonas de Cáceres
+    const coordenadasCaceres = {
+        "Plaza Mayor": [39.4745, -6.3713],
+        "La Madrila": [39.4705, -6.3812],
+        "Ruta de la Plata": [39.4678, -6.3850],
+        "Centro Histórico": [39.4735, -6.3705],
+        "Aldea Moret": [39.4580, -6.3980],
+        "Mejostilla": [39.4930, -6.3680],
+        "Universidad": [39.4780, -6.3420]
     };
 
-    const heatLayers = {};
-    const heatGroup = L.layerGroup();
+    // 2. Datos JSON (Extraídos de tus archivos generados)
+    // =========================================================================
+    // INICIO CAMBIO: LEER ARCHIVO JSON EXTERNO
+    // =========================================================================
+    fetch('datos_mapa.json')
+        .then(response => response.json())
+        .then(datosRuido => {
 
-    Object.keys(layers).forEach(level=>{
-      heatLayers[level] = L.heatLayer(layers[level], {
-        radius: 35, blur: 35, minOpacity: 0.3, gradient: gradients[level]
-      });
-      if (tipo === 'calor' || tipo === 'mixto') {
-        heatLayers[level].addTo(heatGroup);
-      }
+    // 3. Capturar Parámetros de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const modoUrl = urlParams.get('modo') || 'datos'; // datos, mixto, alertas
+    const fechaInicioStr = urlParams.get('fecha_inicio'); // ej: "June 12 2026"
+    const fechaFinStr = urlParams.get('fecha_fin'); // ej: "June 14 2026"
+    const horaInicioStr = urlParams.get('hora_inicio') || '00:00'; 
+    const horaFinStr = urlParams.get('hora_fin') || '23:59';
+
+    // Funciones auxiliares para fechas y horas
+    function parseJsonDate(dateStr) {
+        // Convierte "12/06/2026" a Date object
+        const parts = dateStr.split('/');
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+    }
+    
+    function parseHora(horaStr) {
+        // Convierte "10:30:00" o "10:30" a minutos totales para comparar fácilmente
+        const parts = horaStr.split(':');
+        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    }
+
+  // 3. PARSEO DE PARÁMETROS Y CONTROL DE VARIABLES
+    let fechaInicioObj = fechaInicioStr ? new Date(fechaInicioStr) : null;
+    
+    function parseHora(horaStr) {
+        if (!horaStr) return 0;
+        const parts = horaStr.split(':');
+        return parseInt(parts[0]) * 60 + (parseInt(parts[1]) || 0);
+    }
+
+    let minHoraInicio = parseHora(horaInicioStr);
+    let maxHoraFin = parseHora(horaFinStr);
+    let fechaTargetJson = "12/06/2026"; 
+
+    // GENERADOR DE SEMILLA Y DÍA ALEATORIO SIN DATOS
+    // GENERADOR DE DÍA SIN DATOS (Bloquea todo el año pasado)
+    let esDiaSinDatos = false;
+    if (fechaInicioObj) {
+        // Obtenemos el año de la fecha que se ha pasado por la URL
+        const anioSeleccionado = fechaInicioObj.getFullYear();
+        
+        // Si el año es menor que 2026 (por ejemplo, 2025), se marca como día sin datos
+        if (anioSeleccionado < 2026) {
+            esDiaSinDatos = true;
+        }
+    }
+
+    // CÁCULO DEL BUCLE DE 3 DÍAS
+    if (fechaInicioObj) {
+        const fechaBase = new Date("June 11 2026");
+        const diffTime = fechaInicioObj.getTime() - fechaBase.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const ciclo = ((diffDays % 3) + 3) % 3; 
+
+        if (ciclo === 0) fechaTargetJson = "12/06/2026";
+        else if (ciclo === 1) fechaTargetJson = "13/06/2026";
+        else if (ciclo === 2) fechaTargetJson = "14/06/2026";
+    }
+
+    // 4. FILTRADO DE DATOS RIGUROSO
+    const datosFiltrados = datosRuido.filter(function(d) {
+        if (esDiaSinDatos) return false;
+        if (d.temporal.fecha !== fechaTargetJson) return false;
+        
+        let horaMinutos = parseHora(d.temporal.hora);
+        if (horaMinutos < minHoraInicio || horaMinutos > maxHoraFin) return false;
+        
+        return true;
     });
 
-    if (tipo !== 'alerta') heatGroup.addTo(map);
-
-    const layerOrder = ["bajo","moderado","alto","muyAlto","extremo"];
-    const activeLayers = new Set(layerOrder);
-
-    // --- 4. MODO ALERTA (DIBUJO) ---
-    const drawnItems = new L.FeatureGroup().addTo(map);
-    
-    if (tipo === 'alerta' || tipo === 'mixto') {
-      const drawControl = new L.Control.Draw({
-        edit: { featureGroup: drawnItems },
-        draw: { polygon: true, polyline: false, rectangle: true, circle: false, marker: false, circlemarker: false }
-      });
-      map.addControl(drawControl);
-
-      map.on(L.Draw.Event.CREATED, function (event) {
-        // --- NUEVA VALIDACIÓN DE ENTRADA ---
-        // Si no hay valor o nombre en la URL, no permitimos guardar
-        if (!paramValorNum || isNaN(paramValorNum) || !paramNombre) {
-            alert("⚠️ Error: No se puede guardar la alerta porque faltan datos (nombre o valor dB) en la URL.");
-            // Opcional: eliminar la capa dibujada para que no confunda
-            map.removeLayer(event.layer); 
-            return; 
-        }
-
-        // Si ya se dibujó una, bloqueamos (lógica anterior)
-        if (zonaDibujada) return;
-
-        const layer = event.layer;
-        const color = getColorByDB(paramValorNum);
-        
-        // ... (resto de tu lógica de guardado: LocalStorage, Popup, etc.) ...
-        
-        const nuevaAlerta = {
-          nombre: paramNombre,
-          valor: paramValorNum,
-          color: color,
-          latlngs: layer.getLatLngs()
-        };
-
-        layer.setStyle({ color: color, fillColor: color, fillOpacity: 0.5 });
-        drawnItems.addLayer(layer);
-
-        // Guardar y Bloquear
-        const alertasLocales = JSON.parse(localStorage.getItem('mis_alertas') || '[]');
-        alertasLocales.push(nuevaAlerta);
-        localStorage.setItem('mis_alertas', JSON.stringify(alertasLocales));
-
-        crearPopupConBorrado(layer, nuevaAlerta);
-        
-        zonaDibujada = true;
-        if (typeof drawControl !== 'undefined') map.removeControl(drawControl);
-
-        // Limpiar URL
-        const nuevaURL = window.location.origin + window.location.pathname;
-        window.history.replaceState({}, document.title, nuevaURL);
-      });
-    }
-
-// --- 5. BOTÓN DE EDICIÓN (Gestor de visibilidad total) ---
-    if (tipo === 'alerta' || tipo === 'mixto') {
-      const btn = document.createElement('button');
-      btn.className = 'edit-toggle-btn';
-      
-      // Estado inicial
-      const estaActivo = map.hasLayer(heatGroup);
-      btn.innerHTML = estaActivo ? 'Desactivar Calor' : 'Activar Calor';
-      document.body.appendChild(btn);
-
-      btn.onclick = () => {
-        const legendDiv = document.querySelector('.leaflet-control-legend');
-        
-        if (map.hasLayer(heatGroup)) {
-          // 1. Quitar el grupo principal
-          map.removeLayer(heatGroup);
-          
-          // 2. IMPORTANTE: Quitar también las capas individuales por si el usuario interactuó con la leyenda
-          Object.keys(heatLayers).forEach(level => {
-            map.removeLayer(heatLayers[level]);
-          });
-
-          btn.innerHTML = 'Activar Calor';
-          if (legendDiv) legendDiv.style.display = 'none';
-        } else {
-          // 1. Volver a añadir el grupo principal
-          heatGroup.addTo(map);
-          
-          // 2. Volver a añadir las capas que estaban marcadas como activas en la leyenda
-          activeLayers.forEach(level => {
-            heatLayers[level].addTo(map);
-          });
-
-          btn.innerHTML = 'Desactivar Calor';
-          if (legendDiv) legendDiv.style.display = 'block';
-        }
-      };
-    }
-
-    // --- 6. LEYENDA ---
-   // --- 6. LEYENDA ---
-    const legend = L.control({position:'bottomright'});
-    
-    legend.onAdd = function(){
-      const div = L.DomUtil.create('div','leaflet-control-legend');
-      // Le damos un ID para manipularla fácilmente
-      div.id = 'legend-container'; 
-      
-      div.innerHTML = `
-        <h4 style="margin:0; display:flex; justify-content:space-between; align-items:center;">
-          Niveles de ruido
-          <button id="toggleLegend" style="margin-left:8px; font-size:11px;">–</button>
-        </h4>
-        <div id="legendContent">
-            <div class="color-item" data-level="bajo"><div class="color-box" style="background:#0078ff"></div>(<60 dB)</div>
-            <div class="color-item" data-level="moderado"><div class="color-box" style="background:#64ff8c"></div>(60–75 dB)</div>
-            <div class="color-item" data-level="alto"><div class="color-box" style="background:#ffff78"></div>(75–90 dB)</div>
-            <div class="color-item" data-level="muyAlto"><div class="color-box" style="background:#ffb450"></div>(90–100 dB)</div>
-            <div class="color-item" data-level="extremo"><div class="color-box" style="background:#ff5050"></div>(>100 dB)</div>
-        </div>`;
-
-      // Lógica de filtrado de capas (la que ya tenías)
-      div.querySelectorAll('.color-item').forEach(item=>{
-        item.addEventListener('click',()=>{
-          const level = item.getAttribute('data-level');
-          if (activeLayers.has(level)) {
-            map.removeLayer(heatLayers[level]);
-            activeLayers.delete(level);
-            item.classList.add('inactive');
-          } else {
-            activeLayers.add(level);
-            layerOrder.forEach(l => {
-              if (activeLayers.has(l)) {
-                map.removeLayer(heatLayers[l]);
-                heatLayers[l].addTo(map);
-              }
-            });
-            item.classList.remove('inactive');
-          }
-        });
-      });
-
-      const toggleBtn = div.querySelector('#toggleLegend');
-      const content = div.querySelector('#legendContent');
-      toggleBtn.addEventListener('click', () => {
-        content.classList.toggle('oculto');
-        toggleBtn.textContent = content.classList.contains('oculto') ? '+' : '–';
-      });
-
-      return div;
-    };
-
-    // FUNCIÓN PARA ACTUALIZAR LA VISIBILIDAD DE LA LEYENDA
-    function actualizarVisibilidadLeyenda() {
-      const legendDiv = document.getElementById('legend-container');
-      if (!legendDiv) return;
-
-      if (map.hasLayer(heatGroup)) {
-        legendDiv.style.display = 'block';
-      } else {
-        legendDiv.style.display = 'none';
-      }
-    }
-
-    // Añadir la leyenda inicialmente
-    legend.addTo(map);
-    // Llamar al inicio para comprobar si debe estar oculta (por el tipo=alerta)
-    actualizarVisibilidadLeyenda();
-    // --- 7. CARGAR ALERTAS DESDE ARCHIVO EXTERNO ---
-    function cargarAlertasDesdeArchivo() {
-      fetch('alertas.json') // Busca el archivo en tu repositorio de GitHub
-        .then(response => {
-          if (!response.ok) throw new Error("No se encontró alertas.json");
-          return response.json();
-        })
-        .then(alertas => {
-          alertas.forEach(data => {
-            // Crear el área con las coordenadas del archivo
-            const layer = L.polygon(data.latlngs, {
-              color: data.color || getColorByDB(data.valor),
-              fillColor: data.color || getColorByDB(data.valor),
-              fillOpacity: 0.5
-            });
-            
-            layer.bindPopup(`<b>${data.nombre}</b><br>Nivel: ${data.valor} dB`);
-            drawnItems.addLayer(layer);
-          });
-        })
-        .catch(err => console.log("Nota: No hay alertas.json o está vacío."));
-    }
-
-    // --- 8. CARGAR ALERTAS DESDE LOCALSTORAGE ---
-    function cargarAlertasLocales() {
-      const locales = JSON.parse(localStorage.getItem('mis_alertas') || '[]');
-      
-      locales.forEach(data => {
-        const layer = L.polygon(data.latlngs, {
-          color: data.color,
-          fillColor: data.color,
-          fillOpacity: 0.5
-        });
-        
-        drawnItems.addLayer(layer);
-        // Añadir el popup con botón a las zonas cargadas
-        crearPopupConBorrado(layer, data);
-      });
-    }
-
-    // Ejecutar ambas cargas al iniciar
-    cargarAlertasDesdeArchivo(); // Carga las de GitHub
-    cargarAlertasLocales();      // Carga las tuyas personales
-    // Función para borrar una alerta específica del LocalStorage
-    function borrarAlertaDeStorage(datosParaBorrar) {
-        let alertasLocales = JSON.parse(localStorage.getItem('mis_alertas') || '[]');
-        
-        // Filtramos: nos quedamos con todas MENOS la que queremos borrar
-        // Comparamos el nombre y el primer punto de las coordenadas para estar seguros
-        alertasLocales = alertasLocales.filter(a => {
-            return !(a.nombre === datosParaBorrar.nombre && 
-                     JSON.stringify(a.latlngs[0]) === JSON.stringify(datosParaBorrar.latlngs[0]));
-        });
-
-        localStorage.setItem('mis_alertas', JSON.stringify(alertasLocales));
-    }
-    function crearPopupConBorrado(layer, datosAlerta) {
-        const contenedor = document.createElement('div');
-        contenedor.innerHTML = `
-            <b>${datosAlerta.nombre}</b><br>
-            Nivel: ${datosAlerta.valor} dB<br><br>
-            <button id="btn-borrar-${Math.random().toString(36).substr(2, 9)}" 
-                    style="background:#ff5050; color:white; border:none; padding:5px; border-radius:3px; cursor:pointer; width:100%;">
-                Eliminar Zona
-            </button>
+    // GENERAR CARTEL FLOTANTE SI EL MAPA QUEDA VACÍO
+    if (datosFiltrados.length === 0) {
+        const cartelError = document.createElement('div');
+        cartelError.innerHTML = `
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                        background: rgba(255, 255, 255, 0.98); padding: 25px 35px; border-radius: 12px; 
+                        box-shadow: 0px 10px 30px rgba(0,0,0,0.3); text-align: center; z-index: 2000; 
+                        font-family: Arial, sans-serif; border: 2px solid #d9534f; width: 320px;">
+                <h3 style="color: #d9534f; margin: 0 0 10px 0; font-size: 22px;">⚠️ Alerta de Sistema</h3>
+                <p style="margin: 0; color: #444; font-size: 15px; line-height: 1.4;">
+                    ${esDiaSinDatos ? '<b>No hay datos disponibles.</b> NO se han detectado registros de ruido en este día.' : 'No se encontraron registros de ruido en el rango horario solicitado.'}
+                </p>
+            </div>
         `;
-
-        const boton = contenedor.querySelector('button');
-        boton.onclick = () => {
-            if (confirm("¿Seguro que quieres eliminar esta zona?")) {
-                map.removeLayer(layer); // Quitar del mapa
-                borrarAlertaDeStorage(datosAlerta); // Quitar de LocalStorage
-            }
-        };
-
-        layer.bindPopup(contenedor);
+        document.body.appendChild(cartelError);
     }
 
-  </script>
+    // 5. Agrupar y Calcular Medias por Zona
+    const statsPorZona = {};
+    datosFiltrados.forEach(d => {
+        const zona = d.ubicacion.zona;
+        if (!statsPorZona[zona]) {
+            statsPorZona[zona] = { sumaPromedio: 0, count: 0, min: Infinity, max: -Infinity };
+        }
+        statsPorZona[zona].sumaPromedio += d.acustica.db_promedio_laeq;
+        statsPorZona[zona].count += 1;
+        
+        if (d.acustica.db_minimo < statsPorZona[zona].min) statsPorZona[zona].min = d.acustica.db_minimo;
+        if (d.acustica.db_maximo > statsPorZona[zona].max) statsPorZona[zona].max = d.acustica.db_maximo;
+    });
+
+    // 6. Inicializar el Mapa de Cáceres
+    const map = L.map('map').setView([39.4764, -6.3722], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap Cáceres'
+    }).addTo(map);
+
+    // Definir colores del Heatmap según dB
+    function getColor(d) {
+        return d > 70 ? '#d73027' :  // Rojo (Alerta/Muy ruidoso)
+               d > 60 ? '#fc8d59' :  // Naranja (Ruidoso)
+               d > 50 ? '#fee08b' :  // Amarillo (Moderado)
+                        '#1a9850';   // Verde (Tranquilo)
+    }
+
+    // 7. Dibujar las zonas en el mapa
+    Object.keys(statsPorZona).forEach(zona => {
+        if (coordenadasCaceres[zona]) {
+            let stats = statsPorZona[zona];
+            let media = stats.sumaPromedio / stats.count;
+
+            let circle = L.circle(coordenadasCaceres[zona], {
+                color: getColor(media),
+                fillColor: getColor(media),
+                fillOpacity: 0.6,
+                radius: 400 // Tamaño de la zona
+            }).addTo(map);
+
+            // Tooltip que aparece al pasar el ratón (Hover)
+            let tooltipContent = `
+                <div style="text-align: center;">
+                    <strong style="font-size:16px;">${zona}</strong><br><hr style="margin:5px 0;">
+                    <b>Media:</b> ${media.toFixed(1)} dB<br>
+                    <b>Máximo:</b> ${stats.max.toFixed(1)} dB<br>
+                    <b>Mínimo:</b> ${stats.min.toFixed(1)} dB<br>
+                    <small>(${stats.count} registros)</small>
+                </div>
+            `;
+            circle.bindTooltip(tooltipContent, { sticky: true, className: 'custom-tooltip' });
+        }
+    });
+
+    // 8. Crear la Leyenda
+    const legend = L.control({position: 'bottomright'});
+    legend.onAdd = function (map) {
+        const div = L.DomUtil.create('div', 'info legend');
+        const grades = [0, 50, 60, 70];
+        const labels = ['Tranquilo (<50 dB)', 'Moderado (50-60 dB)', 'Ruidoso (60-70 dB)', 'Alerta (>70 dB)'];
+
+        div.innerHTML += '<strong>Nivel Acústico</strong><br>';
+        for (let i = 0; i < grades.length; i++) {
+            div.innerHTML +=
+                '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+                labels[i] + '<br>';
+        }
+        return div;
+    };
+    legend.addTo(map);
+    })
+        .catch(error => {
+            console.error("Error crítico al cargar el archivo JSON:", error);
+        });
+    // =========================================================================
+    // FIN CAMBIO
+    // =========================================================================
+
+</script>
 </body>
-</html>
+</html>>
