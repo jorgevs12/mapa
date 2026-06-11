@@ -1,0 +1,66 @@
+[
+  {
+    "nombre": "Recinto Ferial",
+    "tipo_alerta": "Evento Masivo",
+    "motivo": "Feria de San Fernando 2026 y atracciones",
+    "nivel_ruido": "Muy Alto (Límitadores al máximo)",
+    "color": "#d73027",
+    "latlngs": [
+      [39.4885, -6.3765],
+      [39.4910, -6.3765],
+      [39.4910, -6.3810],
+      [39.4885, -6.3810]
+    ]
+  },
+  {
+    "nombre": "Paseo de Cánovas",
+    "tipo_alerta": "Tráfico y Terrazas",
+    "motivo": "Concentración de veladores y hora punta comercial",
+    "color": "#fc8d59",
+    "latlngs": [
+      [39.4725, -6.3765],
+      [39.4725, -6.3750],
+      [39.4675, -6.3750],
+      [39.4675, -6.3765]
+    ]
+  },
+  {
+    "nombre": "La Madrila",
+    "tipo_alerta": "ZAS (Zona Acústicamente Saturada)",
+    "motivo": "Ocio nocturno / Discotecas y pubs de madrugada",
+    "horario_critico": "00:00 a 06:00",
+    "color": "#b2182b"
+  },
+  {
+    "nombre": "Plaza Mayor",
+    "tipo_alerta": "Turística",
+    "evento": "Mercado e itinerarios urbanos",
+    "restriccion": "Restricción de carga y descarga matutina",
+    "color": "#fee08b"
+  },
+  {
+    "nombre": "Estación de Autobuses y Trenes",
+    "tipo_alerta": "Infraestructura",
+    "motivo": "Tránsito continuo de autobuses de línea y pasajeros",
+    "color": "#fc8d59"
+  },
+  {
+    "nombre": "Universidad",
+    "tipo_alerta": "Ninguna / Zona Silenciosa",
+    "estado": "Óptimo",
+    "nota": "Niveles ambientales controlados por debajo de 50 dB",
+    "color": "#1a9850"
+  },
+  {
+    "nombre": "Nuevo Cáceres",
+    "tipo_alerta": "Residencial",
+    "incidencia": "Mantenimiento y obras en la vía pública",
+    "color": "#fee08b"
+  },
+  {
+    "nombre": "Macondo y El Peru",
+    "tipo_alerta": "Residencial / Comercial",
+    "nota": "Actividad comercial moderada diurna",
+    "color": "#1a9850"
+  }
+]
