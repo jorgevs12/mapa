@@ -1,0 +1,902 @@
+[
+  {
+    "usuario_id_anonimo": "us01_01",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "10:32:32"
+    },
+    "ubicacion": {
+      "zona": "Mejostilla"
+    },
+    "acustica": {
+      "db_promedio_laeq": 68.3,
+      "db_maximo": 79.4,
+      "db_minimo": 60.6
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us01_02",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "13:50:36"
+    },
+    "ubicacion": {
+      "zona": "Aldea Moret"
+    },
+    "acustica": {
+      "db_promedio_laeq": 66.3,
+      "db_maximo": 74.6,
+      "db_minimo": 60.9
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us01_03",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "19:05:07"
+    },
+    "ubicacion": {
+      "zona": "Ruta de la Plata"
+    },
+    "acustica": {
+      "db_promedio_laeq": 61.7,
+      "db_maximo": 72.0,
+      "db_minimo": 53.6
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us01_04",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "21:20:13"
+    },
+    "ubicacion": {
+      "zona": "Centro Histórico"
+    },
+    "acustica": {
+      "db_promedio_laeq": 45.2,
+      "db_maximo": 57.2,
+      "db_minimo": 39.1
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us01_05",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "12:47:32"
+    },
+    "ubicacion": {
+      "zona": "Mejostilla"
+    },
+    "acustica": {
+      "db_promedio_laeq": 65.8,
+      "db_maximo": 69.6,
+      "db_minimo": 58.6
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us01_06",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "09:29:09"
+    },
+    "ubicacion": {
+      "zona": "Mejostilla"
+    },
+    "acustica": {
+      "db_promedio_laeq": 55.4,
+      "db_maximo": 64.8,
+      "db_minimo": 49.2
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us01_07",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "13:05:25"
+    },
+    "ubicacion": {
+      "zona": "Aldea Moret"
+    },
+    "acustica": {
+      "db_promedio_laeq": 68.0,
+      "db_maximo": 74.8,
+      "db_minimo": 59.2
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us01_08",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "19:56:31"
+    },
+    "ubicacion": {
+      "zona": "Centro Histórico"
+    },
+    "acustica": {
+      "db_promedio_laeq": 67.7,
+      "db_maximo": 75.8,
+      "db_minimo": 57.8
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us01_09",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "16:33:51"
+    },
+    "ubicacion": {
+      "zona": "La Madrila"
+    },
+    "acustica": {
+      "db_promedio_laeq": 66.5,
+      "db_maximo": 76.9,
+      "db_minimo": 56.7
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us01_10",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "16:56:42"
+    },
+    "ubicacion": {
+      "zona": "La Madrila"
+    },
+    "acustica": {
+      "db_promedio_laeq": 62.1,
+      "db_maximo": 69.4,
+      "db_minimo": 56.7
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us02_01",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "20:44:29"
+    },
+    "ubicacion": {
+      "zona": "Mejostilla"
+    },
+    "acustica": {
+      "db_promedio_laeq": 65.7,
+      "db_maximo": 77.3,
+      "db_minimo": 55.8
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us02_02",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "08:35:25"
+    },
+    "ubicacion": {
+      "zona": "Mejostilla"
+    },
+    "acustica": {
+      "db_promedio_laeq": 63.2,
+      "db_maximo": 72.0,
+      "db_minimo": 55.0
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us02_03",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "12:27:12"
+    },
+    "ubicacion": {
+      "zona": "Ruta de la Plata"
+    },
+    "acustica": {
+      "db_promedio_laeq": 55.1,
+      "db_maximo": 59.4,
+      "db_minimo": 45.8
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us02_04",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "14:51:33"
+    },
+    "ubicacion": {
+      "zona": "Centro Histórico"
+    },
+    "acustica": {
+      "db_promedio_laeq": 68.8,
+      "db_maximo": 74.1,
+      "db_minimo": 61.9
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us02_05",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "16:49:52"
+    },
+    "ubicacion": {
+      "zona": "Centro Histórico"
+    },
+    "acustica": {
+      "db_promedio_laeq": 63.4,
+      "db_maximo": 74.6,
+      "db_minimo": 54.4
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us02_06",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "10:29:58"
+    },
+    "ubicacion": {
+      "zona": "Universidad"
+    },
+    "acustica": {
+      "db_promedio_laeq": 61.6,
+      "db_maximo": 71.0,
+      "db_minimo": 51.8
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us02_07",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "08:28:59"
+    },
+    "ubicacion": {
+      "zona": "Plaza Mayor"
+    },
+    "acustica": {
+      "db_promedio_laeq": 67.6,
+      "db_maximo": 74.9,
+      "db_minimo": 63.2
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us02_08",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "08:57:31"
+    },
+    "ubicacion": {
+      "zona": "Ruta de la Plata"
+    },
+    "acustica": {
+      "db_promedio_laeq": 57.9,
+      "db_maximo": 68.6,
+      "db_minimo": 53.0
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us02_09",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "00:05:00"
+    },
+    "ubicacion": {
+      "zona": "Centro Histórico"
+    },
+    "acustica": {
+      "db_promedio_laeq": 49.2,
+      "db_maximo": 54.0,
+      "db_minimo": 44.5
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us02_10",
+    "temporal": {
+      "fecha": "12/06/2026",
+      "hora": "01:48:34"
+    },
+    "ubicacion": {
+      "zona": "Ruta de la Plata"
+    },
+    "acustica": {
+      "db_promedio_laeq": 42.3,
+      "db_maximo": 48.1,
+      "db_minimo": 34.8
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us03_01",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "22:46:08"
+    },
+    "ubicacion": {
+      "zona": "Aldea Moret"
+    },
+    "acustica": {
+      "db_promedio_laeq": 47.1,
+      "db_maximo": 51.3,
+      "db_minimo": 39.5
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us03_02",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "22:32:18"
+    },
+    "ubicacion": {
+      "zona": "La Madrila"
+    },
+    "acustica": {
+      "db_promedio_laeq": 77.4,
+      "db_maximo": 88.8,
+      "db_minimo": 68.7
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us03_03",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "18:19:32"
+    },
+    "ubicacion": {
+      "zona": "Centro Histórico"
+    },
+    "acustica": {
+      "db_promedio_laeq": 67.1,
+      "db_maximo": 74.8,
+      "db_minimo": 61.9
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us03_04",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "00:06:24"
+    },
+    "ubicacion": {
+      "zona": "La Madrila"
+    },
+    "acustica": {
+      "db_promedio_laeq": 52.5,
+      "db_maximo": 61.3,
+      "db_minimo": 42.9
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us03_05",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "00:01:32"
+    },
+    "ubicacion": {
+      "zona": "Centro Histórico"
+    },
+    "acustica": {
+      "db_promedio_laeq": 50.2,
+      "db_maximo": 57.3,
+      "db_minimo": 40.7
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us03_06",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "15:29:36"
+    },
+    "ubicacion": {
+      "zona": "Aldea Moret"
+    },
+    "acustica": {
+      "db_promedio_laeq": 57.3,
+      "db_maximo": 65.0,
+      "db_minimo": 50.7
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us03_07",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "10:29:38"
+    },
+    "ubicacion": {
+      "zona": "Plaza Mayor"
+    },
+    "acustica": {
+      "db_promedio_laeq": 63.2,
+      "db_maximo": 66.5,
+      "db_minimo": 55.3
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us03_08",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "05:02:41"
+    },
+    "ubicacion": {
+      "zona": "Aldea Moret"
+    },
+    "acustica": {
+      "db_promedio_laeq": 46.8,
+      "db_maximo": 56.6,
+      "db_minimo": 41.7
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us03_09",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "22:43:56"
+    },
+    "ubicacion": {
+      "zona": "La Madrila"
+    },
+    "acustica": {
+      "db_promedio_laeq": 77.0,
+      "db_maximo": 82.0,
+      "db_minimo": 67.7
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us03_10",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "04:10:42"
+    },
+    "ubicacion": {
+      "zona": "Universidad"
+    },
+    "acustica": {
+      "db_promedio_laeq": 45.8,
+      "db_maximo": 52.6,
+      "db_minimo": 39.3
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us04_01",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "12:19:11"
+    },
+    "ubicacion": {
+      "zona": "Ruta de la Plata"
+    },
+    "acustica": {
+      "db_promedio_laeq": 59.0,
+      "db_maximo": 66.5,
+      "db_minimo": 50.3
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us04_02",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "13:18:29"
+    },
+    "ubicacion": {
+      "zona": "Plaza Mayor"
+    },
+    "acustica": {
+      "db_promedio_laeq": 62.8,
+      "db_maximo": 69.8,
+      "db_minimo": 55.6
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us04_03",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "16:50:17"
+    },
+    "ubicacion": {
+      "zona": "Universidad"
+    },
+    "acustica": {
+      "db_promedio_laeq": 67.7,
+      "db_maximo": 72.8,
+      "db_minimo": 58.0
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us04_04",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "14:41:21"
+    },
+    "ubicacion": {
+      "zona": "Centro Histórico"
+    },
+    "acustica": {
+      "db_promedio_laeq": 69.4,
+      "db_maximo": 75.6,
+      "db_minimo": 64.5
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us04_05",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "17:43:36"
+    },
+    "ubicacion": {
+      "zona": "Universidad"
+    },
+    "acustica": {
+      "db_promedio_laeq": 56.6,
+      "db_maximo": 66.0,
+      "db_minimo": 49.3
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us04_06",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "18:46:13"
+    },
+    "ubicacion": {
+      "zona": "Aldea Moret"
+    },
+    "acustica": {
+      "db_promedio_laeq": 63.4,
+      "db_maximo": 72.4,
+      "db_minimo": 58.6
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us04_07",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "08:06:27"
+    },
+    "ubicacion": {
+      "zona": "Plaza Mayor"
+    },
+    "acustica": {
+      "db_promedio_laeq": 65.3,
+      "db_maximo": 75.1,
+      "db_minimo": 57.0
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us04_08",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "05:41:40"
+    },
+    "ubicacion": {
+      "zona": "La Madrila"
+    },
+    "acustica": {
+      "db_promedio_laeq": 44.2,
+      "db_maximo": 54.7,
+      "db_minimo": 38.5
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us04_09",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "10:10:16"
+    },
+    "ubicacion": {
+      "zona": "Ruta de la Plata"
+    },
+    "acustica": {
+      "db_promedio_laeq": 55.2,
+      "db_maximo": 66.0,
+      "db_minimo": 45.8
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us04_10",
+    "temporal": {
+      "fecha": "13/06/2026",
+      "hora": "08:26:00"
+    },
+    "ubicacion": {
+      "zona": "La Madrila"
+    },
+    "acustica": {
+      "db_promedio_laeq": 58.5,
+      "db_maximo": 64.3,
+      "db_minimo": 53.9
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us05_01",
+    "temporal": {
+      "fecha": "14/06/2026",
+      "hora": "18:59:54"
+    },
+    "ubicacion": {
+      "zona": "Ruta de la Plata"
+    },
+    "acustica": {
+      "db_promedio_laeq": 66.7,
+      "db_maximo": 75.2,
+      "db_minimo": 58.8
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us05_02",
+    "temporal": {
+      "fecha": "14/06/2026",
+      "hora": "19:02:59"
+    },
+    "ubicacion": {
+      "zona": "Centro Histórico"
+    },
+    "acustica": {
+      "db_promedio_laeq": 64.1,
+      "db_maximo": 72.4,
+      "db_minimo": 57.5
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us05_03",
+    "temporal": {
+      "fecha": "14/06/2026",
+      "hora": "21:56:07"
+    },
+    "ubicacion": {
+      "zona": "Mejostilla"
+    },
+    "acustica": {
+      "db_promedio_laeq": 52.9,
+      "db_maximo": 62.0,
+      "db_minimo": 43.4
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us05_04",
+    "temporal": {
+      "fecha": "14/06/2026",
+      "hora": "12:18:52"
+    },
+    "ubicacion": {
+      "zona": "Ruta de la Plata"
+    },
+    "acustica": {
+      "db_promedio_laeq": 66.0,
+      "db_maximo": 72.9,
+      "db_minimo": 61.9
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us05_05",
+    "temporal": {
+      "fecha": "14/06/2026",
+      "hora": "22:21:18"
+    },
+    "ubicacion": {
+      "zona": "Mejostilla"
+    },
+    "acustica": {
+      "db_promedio_laeq": 44.5,
+      "db_maximo": 51.2,
+      "db_minimo": 37.0
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us05_06",
+    "temporal": {
+      "fecha": "14/06/2026",
+      "hora": "00:34:21"
+    },
+    "ubicacion": {
+      "zona": "Plaza Mayor"
+    },
+    "acustica": {
+      "db_promedio_laeq": 50.8,
+      "db_maximo": 54.8,
+      "db_minimo": 43.1
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us05_07",
+    "temporal": {
+      "fecha": "14/06/2026",
+      "hora": "03:02:08"
+    },
+    "ubicacion": {
+      "zona": "Aldea Moret"
+    },
+    "acustica": {
+      "db_promedio_laeq": 49.0,
+      "db_maximo": 60.8,
+      "db_minimo": 43.2
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us05_08",
+    "temporal": {
+      "fecha": "14/06/2026",
+      "hora": "13:37:08"
+    },
+    "ubicacion": {
+      "zona": "Ruta de la Plata"
+    },
+    "acustica": {
+      "db_promedio_laeq": 60.8,
+      "db_maximo": 66.0,
+      "db_minimo": 54.3
+    },
+    "contexto": {
+      "entorno": "interior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us05_09",
+    "temporal": {
+      "fecha": "14/06/2026",
+      "hora": "07:49:08"
+    },
+    "ubicacion": {
+      "zona": "Plaza Mayor"
+    },
+    "acustica": {
+      "db_promedio_laeq": 49.9,
+      "db_maximo": 61.3,
+      "db_minimo": 41.8
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  },
+  {
+    "usuario_id_anonimo": "us05_10",
+    "temporal": {
+      "fecha": "14/06/2026",
+      "hora": "12:56:16"
+    },
+    "ubicacion": {
+      "zona": "Universidad"
+    },
+    "acustica": {
+      "db_promedio_laeq": 58.4,
+      "db_maximo": 61.5,
+      "db_minimo": 51.2
+    },
+    "contexto": {
+      "entorno": "exterior"
+    }
+  }
+]
