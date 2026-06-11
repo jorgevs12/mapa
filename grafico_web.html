@@ -128,15 +128,11 @@
 <body>
 
 <div class="container">
-    <header>
-        <h1>Monitorización Acústica</h1>
-        <p>Filtrado dinámico automatizado mediante parámetros de consulta (URL Query Params)</p>
-    </header>
 
     <div class="filter-panel">
         <form id="filterForm">
 <div class="filter-group">
-    <label>Tipo de Gráfica Global</label>
+    <label>Tipo de Gráfica</label>
     <div class="btn-group-types">
         <button type="button" class="btn-type active" data-type="bar" onclick="cambiarTipoGrafica('bar', this)">Barras</button>
         <button type="button" class="btn-type" data-type="line" onclick="cambiarTipoGrafica('line', this)">Líneas</button>
@@ -144,32 +140,6 @@
         <button type="button" class="btn-type" data-type="doughnut" onclick="cambiarTipoGrafica('doughnut', this)">Dónut</button>
     </div>
 </div>
-            <div class="filter-grid">
-                <div class="filter-group">
-                    <label>Fecha (Format: June 11 2026)</label>
-                    <input type="text" id="filterFecha" name="fecha" placeholder="Ej. June 11 2026">
-                </div>
-                <div class="filter-group">
-                    <label>Hora (Format: 00:00)</label>
-                    <input type="text" id="filterHora" name="hora" placeholder="Ej. 10:32">
-                </div>
-                <div class="filter-group">
-                    <label>Ubicación / Zona</label>
-                    <input type="text" id="filterZona" name="zona" placeholder="Ej. Mejostilla">
-                </div>
-                <div class="filter-group">
-                    <label>Entorno (Contexto)</label>
-                    <select id="filterEntorno" name="entorno">
-                        <option value="">Todos</option>
-                        <option value="exterior">Exterior</option>
-                        <option value="interior">Interior</option>
-                    </select>
-                </div>
-            </div>
-            <div class="btn-container">
-                <button type="button" class="btn-reset" onclick="limpiarFiltros()">Limpiar Todo</button>
-                <button type="submit" class="btn-apply">Aplicar y Forzar URL</button>
-            </div>
         </form>
     </div>
 
