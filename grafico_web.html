@@ -173,7 +173,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.history.pushState({}, '', window.location.pathname);
         procesarYRenderizar();
     }
-
 // EXTRAE Y FILTRA EL DATASET EN BASE A PARÁMETROS Y RANGOS DE LA URL
     function obtenerDatosFiltrados() {
         const params = new URLSearchParams(window.location.search);
@@ -181,34 +180,68 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Función auxiliar para validar si un parámetro tiene un filtro real activo
         const tieneFiltro = (val) => val !== null && val.trim() !== '' && val.toLowerCase().trim() !== 'vacio';
 
-        const fFecha = params.get('fecha');
-        const fHoraMin = params.get('horaMin');
-        const fHoraMax = params.get('horaMax');
+        // Función interna para transformar horas raras (ej: "2:9" o "02:9") en formato limpio "02:09"
+        const normalizarHora = (horaStr) => {
+            if (!tieneFiltro(horaStr)) return null;
+            const partes = horaStr.trim().split(':');
+            if (partes.length >= 2) {
+                const horas = partes[0].padStart(2, '0');
+                const minutos = partes[1].padStart(2, '0');
+                return `${horas}:${minutos}`;
+            }
+            return horaStr.trim();
+        };
+
+        const fFechaRaw = params.get('fecha');
+        // Extraer y formatear los rangos horarios al instante
+        const fHoraMin = normalizarHora(params.get('horaMin'));
+        const fHoraMax = normalizarHora(params.get('horaMax'));
+        
         const fZona = params.get('zona') ? decodeURIComponent(params.get('zona')) : null;
         const fEntorno = params.get('entorno');
         const fDbMin = tieneFiltro(params.get('dbMin')) ? parseFloat(params.get('dbMin')) : null;
         const fDbMax = tieneFiltro(params.get('dbMax')) ? parseFloat(params.get('dbMax')) : null;
 
+        // Convertir fecha de URL "Month DD YYYY" a "DD/MM/YYYY" para emparejar con el JSON
+        let fFechaConvertida = null;
+        if (tieneFiltro(fFechaRaw)) {
+            const meses = {
+                january: '01', february: '02', march: '03', april: '04', may: '05', june: '06',
+                july: '07', august: '08', september: '09', october: '10', november: '11', december: '12',
+                jan: '01', feb: '02', mar: '03', apr: '04', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+            };
+            const partes = fFechaRaw.trim().replace(/\s+/g, ' ').toLowerCase().split(' ');
+            if (partes.length === 3) {
+                const mesNum = meses[partes[0]];
+                const diaNum = partes[1].padStart(2, '0');
+                const anioNum = partes[2];
+                if (mesNum) fFechaConvertida = `${diaNum}/${mesNum}/${anioNum}`;
+            }
+            if (!fFechaConvertida) fFechaConvertida = fFechaRaw.trim();
+        }
+
         return rawData.filter(item => {
-            // 1. Filtro de Fecha
-            if (tieneFiltro(fFecha) && item.temporal?.fecha.toLowerCase().trim() !== fFecha.toLowerCase().trim()) return false;
+            // 1. Filtro de Fecha (Usa el formato DD/MM/YYYY convertido)
+            if (fFechaConvertida && item.temporal?.fecha) {
+                if (item.temporal.fecha.trim() !== fFechaConvertida) return false;
+            } else if (tieneFiltro(fFechaRaw)) return false;
             
-            // 2. Filtro por Rango de Hora (Compara strings "HH:MM")
+            // 2. Filtro por Rango de Hora (Compara strings estandarizados "HH:MM")
             if (item.temporal?.hora) {
                 const horaItem = item.temporal.hora.trim().substring(0, 5);
-                if (tieneFiltro(fHoraMin) && horaItem < fHoraMin.trim()) return false;
-                if (tieneFiltro(fHoraMax) && horaItem > fHoraMax.trim()) return false;
-            } else if (tieneFiltro(fHoraMin) || tieneFiltro(fHoraMax)) return false;
+                if (fHoraMin && horaItem < fHoraMin) return false;
+                if (fHoraMax && horaItem > fHoraMax) return false;
+            } else if (fHoraMin || fHoraMax) return false;
             
             // 3. Filtro de Zona
-            if (tieneFiltro(fZona) && item.ubicacion?.zona.toLowerCase().trim() !== fZona.toLowerCase().trim()) return false;
+            if (tieneFiltro(fZona) && item.ubicacion?.zona?.toLowerCase().trim() !== fZona.toLowerCase().trim()) return false;
             
             // 4. Filtro de Entorno
-            if (tieneFiltro(fEntorno) && item.contexto?.entorno.toLowerCase().trim() !== fEntorno.toLowerCase().trim()) return false;
+            if (tieneFiltro(fEntorno) && item.contexto?.entorno?.toLowerCase().trim() !== fEntorno.toLowerCase().trim()) return false;
             
             // 5. Filtro por Rango de Decibelios
             if (item.acustica?.db_promedio_laeq !== undefined) {
-                const db = item.acustica.db_promedio_laeq;
+                const db = parseFloat(item.acustica.db_promedio_laeq);
                 if (fDbMin !== null && db < fDbMin) return false;
                 if (fDbMax !== null && db > fDbMax) return false;
             } else if (fDbMin !== null || fDbMax !== null) return false;
