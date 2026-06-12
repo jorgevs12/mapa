@@ -231,37 +231,39 @@ document.addEventListener("DOMContentLoaded", async () => {
         procesarYRenderizar();
     }
 
-    // EXTRAE Y FILTRA EL DATASET EN BASE A CADENAS DE TEXTO EXACTAS
-    // EXTRAE Y FILTRA EL DATASET EN BASE A PARÁMETROS Y RANGOS DE LA URL
+// EXTRAE Y FILTRA EL DATASET EN BASE A PARÁMETROS Y RANGOS DE LA URL
     function obtenerDatosFiltrados() {
         const params = new URLSearchParams(window.location.search);
         
+        // Función auxiliar para validar si un parámetro tiene un filtro real activo
+        const tieneFiltro = (val) => val !== null && val.trim() !== '' && val.toLowerCase().trim() !== 'vacio';
+
         const fFecha = params.get('fecha');
-        const fHoraMin = params.get('horaMin'); // Formato: "HH:MM" (ej: 08:00)
-        const fHoraMax = params.get('horaMax'); // Formato: "HH:MM" (ej: 14:30)
-        const fZona = params.get('zona');
+        const fHoraMin = params.get('horaMin');
+        const fHoraMax = params.get('horaMax');
+        const fZona = params.get('zona') ? decodeURIComponent(params.get('zona')) : null;
         const fEntorno = params.get('entorno');
-        const fDbMin = params.get('dbMin') ? parseFloat(params.get('dbMin')) : null;
-        const fDbMax = params.get('dbMax') ? parseFloat(params.get('dbMax')) : null;
+        const fDbMin = tieneFiltro(params.get('dbMin')) ? parseFloat(params.get('dbMin')) : null;
+        const fDbMax = tieneFiltro(params.get('dbMax')) ? parseFloat(params.get('dbMax')) : null;
 
         return rawData.filter(item => {
-            // 1. Filtro de Fecha Exacta
-            if (fFecha && item.temporal?.fecha.toLowerCase().trim() !== fFecha.toLowerCase().trim()) return false;
+            // 1. Filtro de Fecha
+            if (tieneFiltro(fFecha) && item.temporal?.fecha.toLowerCase().trim() !== fFecha.toLowerCase().trim()) return false;
             
             // 2. Filtro por Rango de Hora (Compara strings "HH:MM")
             if (item.temporal?.hora) {
                 const horaItem = item.temporal.hora.trim().substring(0, 5);
-                if (fHoraMin && horaItem < fHoraMin) return false;
-                if (fHoraMax && horaItem > fHoraMax) return false;
-            } else if (fHoraMin || fHoraMax) return false;
+                if (tieneFiltro(fHoraMin) && horaItem < fHoraMin.trim()) return false;
+                if (tieneFiltro(fHoraMax) && horaItem > fHoraMax.trim()) return false;
+            } else if (tieneFiltro(fHoraMin) || tieneFiltro(fHoraMax)) return false;
             
             // 3. Filtro de Zona
-            if (fZona && item.ubicacion?.zona.toLowerCase().trim() !== decodeURIComponent(fZona).toLowerCase().trim()) return false;
+            if (tieneFiltro(fZona) && item.ubicacion?.zona.toLowerCase().trim() !== fZona.toLowerCase().trim()) return false;
             
             // 4. Filtro de Entorno
-            if (fEntorno && item.contexto?.entorno.toLowerCase().trim() !== fEntorno.toLowerCase().trim()) return false;
+            if (tieneFiltro(fEntorno) && item.contexto?.entorno.toLowerCase().trim() !== fEntorno.toLowerCase().trim()) return false;
             
-            // 5. Filtro por Rango de Decibelios (Evaluado sobre db_promedio_laeq)
+            // 5. Filtro por Rango de Decibelios
             if (item.acustica?.db_promedio_laeq !== undefined) {
                 const db = item.acustica.db_promedio_laeq;
                 if (fDbMin !== null && db < fDbMin) return false;
