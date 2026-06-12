@@ -153,77 +153,20 @@
 let rawData = [];
 let globalCharts = {};
 
-// Carga asíncrona del archivo JSON externo
+// Carga asíncrona del archivo JSON externo y renderizado inicial
 document.addEventListener("DOMContentLoaded", async () => {
     try {
         const response = await fetch('datos_mapa.json');
         if (!response.ok) throw new Error('No se pudo cargar el archivo JSON externo');
         rawData = await response.json();
         
-        // Sincronizar filtros de la URL con el formulario
-        const params = new URLSearchParams(window.location.search);
-        if(params.get('fecha')) document.getElementById('filterFecha').value = params.get('fecha');
-        if(params.get('hora')) document.getElementById('filterHora').value = params.get('hora');
-        if(params.get('zona')) document.getElementById('filterZona').value = params.get('zona');
-        if(params.get('entorno')) document.getElementById('filterEntorno').value = params.get('entorno');
-
-        // Primera renderización con datos externos
+        // Renderiza directamente leyendo los parámetros que vienen en la URL
         procesarYRenderizar();
     } catch (error) {
         console.error('Error:', error);
         document.getElementById('chartsContainer').innerHTML = `<div class="no-data">❌ Error al cargar datos_mapa.json: ${error.message}</div>`;
     }
-
-    // Interceptador del formulario para reescribir URL sin recargar
-    document.getElementById('filterForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const urlParams = new URLSearchParams();
-        const fecha = document.getElementById('filterFecha').value.trim();
-        const hora = document.getElementById('filterHora').value.trim();
-        const zona = document.getElementById('filterZona').value.trim();
-        const entorno = document.getElementById('filterEntorno').value;
-
-        if(fecha) urlParams.set('fecha', fecha);
-        if(hora) urlParams.set('hora', hora);
-        if(zona) urlParams.set('zona', zona);
-        if(entorno) urlParams.set('entorno', entorno);
-
-        window.history.pushState({}, '', window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : ''));
-        procesarYRenderizar();
-    });
 });
-
-    document.addEventListener("DOMContentLoaded", () => {
-        // 1. Sincronizar campos de texto del formulario con los parámetros reales de la URL actual
-        const params = new URLSearchParams(window.location.search);
-        if(params.get('fecha')) document.getElementById('filterFecha').value = params.get('fecha');
-        if(params.get('hora')) document.getElementById('filterHora').value = params.get('hora');
-        if(params.get('zona')) document.getElementById('filterZona').value = params.get('zona');
-        if(params.get('entorno')) document.getElementById('filterEntorno').value = params.get('entorno');
-
-        // 2. Ejecutar procesamiento inicial
-        procesarYRenderizar();
-
-        // Interceptador de sumisión de formulario para reescribir la URL sin recargar la página
-        document.getElementById('filterForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const urlParams = new URLSearchParams();
-            const fecha = document.getElementById('filterFecha').value.trim();
-            const hora = document.getElementById('filterHora').value.trim();
-            const zona = document.getElementById('filterZona').value.trim();
-            const entorno = document.getElementById('filterEntorno').value;
-
-            if(fecha) urlParams.set('fecha', fecha);
-            if(hora) urlParams.set('hora', hora);
-            if(zona) urlParams.set('zona', zona);
-            if(entorno) urlParams.set('entorno', entorno);
-
-            const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-            window.history.pushState({}, '', newUrl);
-            
-            procesarYRenderizar();
-        });
-    });
 
     function limpiarFiltros() {
         document.getElementById('filterForm').reset();
