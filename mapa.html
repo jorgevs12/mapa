@@ -70,21 +70,62 @@ const coordenadasCaceres = {
 
 function obtenerAlertasDesdeDB() {
     return new Promise((resolve) => {
-        const request = indexedDB.open("alertas_db", 1);
-        request.onsuccess = (event) => {
-            const db = event.target.result;
-            // Validar si el almacén existe antes de leerlo
-            if (!db.objectStoreNames.contains("alertas")) {
-                resolve([]);
-                return;
+        // 1. Alertas predeterminadas de tus capturas
+        let alertas = [
+            { "Ubicacion": "Centro Histórico", "DB": 78.3, "Criticidad": "Crítica", "Col_Porcentaje": 120, "Tipo_Limite": "OMS 2018", "Valor_Limite": 75 },
+            { "Ubicacion": "Recinto Ferial", "DB": 83.4, "Criticidad": "Crítica", "Col_Porcentaje": 109, "Tipo_Limite": "ITU-T P.56", "Valor_Limite": 80 },
+            { "Ubicacion": "Nuevo Cáceres", "DB": 58.3, "Criticidad": "Moderada", "Col_Porcentaje": 106, "Tipo_Limite": "Configurable", "Valor_Limite": 52.2 }
+        ];
+
+        // Asegurar coordenadas iniciales
+        if (!coordenadasCaceres["Centro Histórico"]) coordenadasCaceres["Centro Histórico"] = [39.4735, -6.3705];
+        if (!coordenadasCaceres["Recinto Ferial"]) coordenadasCaceres["Recinto Ferial"] = [39.4897, -6.3787];
+        if (!coordenadasCaceres["Nuevo Cáceres"]) coordenadasCaceres["Nuevo Cáceres"] = [39.4622, -6.3745];
+
+        // 2. Capturar variables de control de CRUD desde la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const accion = urlParams.get('accion'); // 'anadir', 'actualizar', 'borrar'
+        const idZona = urlParams.get('id');       // El nombre de la zona actúa como ID único
+
+        if (accion && idZona) {
+            const zonaDecodificada = decodeURIComponent(idZona);
+
+            // ACCIÓN: BORRAR
+            if (accion === 'borrar') {
+                alertas = alertas.filter(a => a.Ubicacion.toLowerCase() !== zonaDecodificada.toLowerCase());
+                console.log("CRUD: Alerta eliminada ->", zonaDecodificada);
             }
-            const transaction = db.transaction(["alertas"], "readonly");
-            const store = transaction.objectStore("alertas");
-            const getAllRequest = store.getAll();
-            getAllRequest.onsuccess = () => resolve(getAllRequest.result);
-            getAllRequest.onerror = () => resolve([]);
-        };
-        request.onerror = () => resolve([]);
+            // ACCIÓN: AÑADIR O ACTUALIZAR
+            else if (accion === 'anadir' || accion === 'actualizar') {
+                const nuevaAlerta = {
+                    "Ubicacion": zonaDecodificada,
+                    "DB": parseFloat(urlParams.get('db')) || 60.0,
+                    "Criticidad": urlParams.get('severidad') || 'Moderada',
+                    "Col_Porcentaje": parseInt(urlParams.get('porcentaje')) || 100,
+                    "Tipo_Limite": urlParams.get('normativa') || 'Configurable',
+                    "Valor_Limite": parseFloat(urlParams.get('limite')) || 50.0
+                };
+
+                // Si la zona no existe en el diccionario de coordenadas de Cáceres, le asignamos una por defecto
+                if (!coordenadasCaceres[zonaDecodificada]) {
+                    coordenadasCaceres[zonaDecodificada] = [39.4700, -6.3700]; // Coordenada céntrica provisional
+                }
+
+                const indiceExistente = alertas.findIndex(a => a.Ubicacion.toLowerCase() === zonaDecodificada.toLowerCase());
+
+                if (indiceExistente !== -1 && accion === 'actualizar') {
+                    // Si existe y es actualizar, reemplazamos los datos
+                    alertas[indiceExistente] = nuevaAlerta;
+                    console.log("CRUD: Alerta actualizada ->", zonaDecodificada);
+                } else if (accion === 'anadir') {
+                    // Si es añadir, la sumamos a la lista
+                    alertas.push(nuevaAlerta);
+                    console.log("CRUD: Alerta añadida ->", zonaDecodificada);
+                }
+            }
+        }
+
+        resolve(alertas);
     });
 }
 
@@ -384,4 +425,4 @@ Promise.all([
     });
 </script>
 </body>
-</html>>
+</html>
