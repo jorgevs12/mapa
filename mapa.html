@@ -87,94 +87,92 @@ const coordenadasCaceres = {
 };
 
 function obtenerAlertasDesdeDB() {
-    return new Promise((resolve) => {
-        // --- CONTROL Y PERSISTENCIA DE LA BASE DE DATOS LOCAL ---
-        const llaveStorage = 'mis_alertas_mapa';
-        let alertasGuardadas = localStorage.getItem(llaveStorage);
-        let alertas = [];
+    return new Promise((resolve, reject) => {
+        // 1. Abrir (o crear) la base de datos de IndexedDB llamada 'MapaRuidoDB' (Versión 1)
+        const request = indexedDB.open('MapaRuidoDB', 1);
+        const datosEstaticosIniciales = [
+            { "Ubicacion": "Centro Histórico", "DB": 78.3, "Criticidad": "Crítica", "Col_Porcentaje": 120, "Tipo_Limite": "OMS 2018", "Valor_Limite": 75 },
+            { "Ubicacion": "Recinto Ferial", "DB": 83.4, "Criticidad": "Crítica", "Col_Porcentaje": 109, "Tipo_Limite": "ITU-T P.56", "Valor_Limite": 80 },
+            { "Ubicacion": "Nuevo Cáceres", "DB": 58.3, "Criticidad": "Moderada", "Col_Porcentaje": 106, "Tipo_Limite": "Configurable", "Valor_Limite": 52.2 }
+        ];
 
-        if (alertasGuardadas !== null) {
-            // SI EXISTE: Usamos los datos guardados previamente en el navegador
-            alertas = JSON.parse(alertasGuardadas);
-            console.log("BD LOCAL DETECTADA: Cargando alertas desde localStorage.");
-        } else {
-            // NO EXISTE: Inicializamos la BD local con tus datos estáticos por primera vez
-            alertas = [
-                { "Ubicacion": "Centro Histórico", "DB": 78.3, "Criticidad": "Crítica", "Col_Porcentaje": 120, "Tipo_Limite": "OMS 2018", "Valor_Limite": 75 },
-                { "Ubicacion": "Recinto Ferial", "DB": 83.4, "Criticidad": "Crítica", "Col_Porcentaje": 109, "Tipo_Limite": "ITU-T P.56", "Valor_Limite": 80 },
-                { "Ubicacion": "Nuevo Cáceres", "DB": 58.3, "Criticidad": "Moderada", "Col_Porcentaje": 106, "Tipo_Limite": "Configurable", "Valor_Limite": 52.2 }
-            ];
-            localStorage.setItem(llaveStorage, JSON.stringify(alertas));
-            console.log("BD LOCAL NO EXISTÍA: Creada con los datos estáticos iniciales.");
-        }
+        // SI LA BD NO EXISTE, SE EJECUTA ESTE EVENTO PARA CREAR LA ESTRUCTURA
+        request.onupgradeneeded = function(e) {
+            const db = e.target.result;
+            // Creamos el almacén de objetos 'alertas' usando 'Ubicacion' como clave primaria (ID)
+            const objectStore = db.createObjectStore('alertas', { keyPath: 'Ubicacion' });
+            
+            // Insertamos los datos estáticos iniciales en la nueva BD
+            datosEstaticosIniciales.forEach(alerta => {
+                objectStore.add(alerta);
+            });
+            console.log("IndexedDB: Base de datos creada e inicializada con datos estáticos.");
+        };
 
-        // Asegurar coordenadas iniciales
-        if (!coordenadasCaceres["Centro Histórico"]) coordenadasCaceres["Centro Histórico"] = [39.4735, -6.3705];
-        if (!coordenadasCaceres["Recinto Ferial"]) coordenadasCaceres["Recinto Ferial"] = [39.4897, -6.3787];
-        if (!coordenadasCaceres["Nuevo Cáceres"]) coordenadasCaceres["Nuevo Cáceres"] = [39.4622, -6.3745];
+        request.onsuccess = function(e) {
+            const db = e.target.result;
+            const urlParams = new URLSearchParams(window.location.search);
+            const accion = urlParams.get('accion');
+            const idZona = urlParams.get('id');
 
-        // 2. Capturar variables de control de CRUD desde la URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const accion = urlParams.get('accion'); // 'anadir', 'actualizar', 'borrar'
-        const idZona = urlParams.get('id');       // El nombre de la zona actúa como ID único
+            // Asegurar coordenadas iniciales en tu objeto global
+            if (!coordenadasCaceres["Centro Histórico"]) coordenadasCaceres["Centro Histórico"] = [39.4735, -6.3705];
+            if (!coordenadasCaceres["Recinto Ferial"]) coordenadasCaceres["Recinto Ferial"] = [39.4897, -6.3787];
+            if (!coordenadasCaceres["Nuevo Cáceres"]) coordenadasCaceres["Nuevo Cáceres"] = [39.4622, -6.3745];
 
-        if (accion && idZona) {
-            const zonaDecodificada = decodeURIComponent(idZona);
-            let huboCambio = false;
+            // SI HAY UNA ACCIÓN EN LA URL (CRUD)
+            if (accion && idZona) {
+                const zonaDecodificada = decodeURIComponent(idZona);
+                const transaction = db.transaction(['alertas'], 'readwrite');
+                const store = transaction.objectStore('alertas');
 
-            // ACCIÓN: BORRAR
-            if (accion === 'borrar') {
-                const longitudOriginal = alertas.length;
-                alertas = alertas.filter(a => a.Ubicacion.toLowerCase() !== zonaDecodificada.toLowerCase());
-                if (alertas.length !== longitudOriginal) {
-                    huboCambio = true;
-                    console.log("CRUD: Alerta eliminada ->", zonaDecodificada);
+                if (accion === 'borrar') {
+                    store.delete(zonaDecodificada);
+                    console.log("IndexedDB: Alerta eliminada ->", zonaDecodificada);
+                } 
+                else if (accion === 'anadir' || accion === 'actualizar') {
+                    const nuevaAlerta = {
+                        "Ubicacion": zonaDecodificada,
+                        "DB": parseFloat(urlParams.get('db')) || 60.0,
+                        "Criticidad": urlParams.get('severidad') || 'Moderada',
+                        "Col_Porcentaje": parseInt(urlParams.get('porcentaje')) || 100,
+                        "Tipo_Limite": urlParams.get('normativa') || 'Configurable',
+                        "Valor_Limite": parseFloat(urlParams.get('limite')) || 50.0
+                    };
+
+                    if (!coordenadasCaceres[zonaDecodificada]) {
+                        coordenadasCaceres[zonaDecodificada] = [39.4700, -6.3700];
+                    }
+
+                    store.put(nuevaAlerta); // 'put' actualiza si existe o añade si no existe
+                    console.log(`IndexedDB: Alerta ${accion} ->`, zonaDecodificada);
                 }
-            }
-            // ACCIÓN: AÑADIR O ACTUALIZAR
-            else if (accion === 'anadir' || accion === 'actualizar') {
-                const nuevaAlerta = {
-                    "Ubicacion": zonaDecodificada,
-                    "DB": parseFloat(urlParams.get('db')) || 60.0,
-                    "Criticidad": urlParams.get('severidad') || 'Moderada',
-                    "Col_Porcentaje": parseInt(urlParams.get('porcentaje')) || 100,
-                    "Tipo_Limite": urlParams.get('normativa') || 'Configurable',
-                    "Valor_Limite": parseFloat(urlParams.get('limite')) || 50.0
+
+                // Esperamos a que la transacción termine para limpiar la URL y recargar la pantalla
+                transaction.oncomplete = function() {
+                    const modoActual = urlParams.get('modo') || 'mixto';
+                    const nuevaUrl = window.location.origin + window.location.pathname + "?modo=" + modoActual;
+                    window.location.href = nuevaUrl;
                 };
-
-                if (!coordenadasCaceres[zonaDecodificada]) {
-                    coordenadasCaceres[zonaDecodificada] = [39.4700, -6.3700]; 
-                }
-
-                const indiceExistente = alertas.findIndex(a => a.Ubicacion.toLowerCase() === zonaDecodificada.toLowerCase());
-
-                if (indiceExistente !== -1 && accion === 'actualizar') {
-                    alertas[indiceExistente] = nuevaAlerta;
-                    huboCambio = true;
-                    console.log("CRUD: Alerta actualizada ->", zonaDecodificada);
-                } else if (accion === 'anadir') {
-                    alertas.push(nuevaAlerta);
-                    huboCambio = true;
-                    console.log("CRUD: Alerta añadida ->", zonaDecodificada);
-                }
+                return;
             }
 
-            // Si los datos en memoria cambiaron, los guardamos en la BD y limpiamos la URL para pintar el mapa
-            if (huboCambio) {
-                localStorage.setItem(llaveStorage, JSON.stringify(alertas));
-                
-                // Mantiene el modo visual limpio sin re-ejecutar la acción
-                const modoActual = urlParams.get('modo') || 'mixto';
-                const nuevaUrl = window.location.origin + window.location.pathname + "?modo=" + modoActual;
-                window.location.href = nuevaUrl;
-                return; 
-            }
-        }
+            // SI NO HAY ACCIÓN: Simplemente leemos todas las alertas de IndexedDB para pintarlas en Leaflet
+            const tx = db.transaction(['alertas'], 'readonly');
+            const store = tx.objectStore('alertas');
+            const getAllRequest = store.getAll();
 
-        resolve(alertas);
+            getAllRequest.onsuccess = function() {
+                resolve(getAllRequest.result); // Devolvemos el array de alertas al Promise.all
+            };
+        };
+
+        request.onerror = function(e) {
+            console.error("Error al abrir IndexedDB", e);
+            reject([]);
+        };
     });
 }
-
 // Carga asíncrona simultánea
 Promise.all([
     fetch('datos_mapa.json').then(res => res.json()),
