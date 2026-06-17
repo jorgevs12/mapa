@@ -68,103 +68,21 @@ const coordenadasCaceres = {
     "Casa Plata": [39.4540, -6.3710]
 };
 
-const coordenadasCaceres = {
-    "Plaza Mayor": [39.4745, -6.3713],
-    "La Madrila": [39.4705, -6.3812],
-    "Ruta de la Plata": [39.4678, -6.3850],
-    "Centro Histórico": [39.4735, -6.3705],
-    "Aldea Moret": [39.4580, -6.3980],
-    "Mejostilla": [39.4930, -6.3680],
-    "Universidad": [39.4780, -6.3420],
-    "Paseo de Cánovas": [39.4702, -6.3758],
-    "Nuevo Cáceres": [39.4622, -6.3745],
-    "Estación de Autobuses y Trenes": [39.4645, -6.3892],
-    "Recinto Ferial": [39.4897, -6.3787],
-    "Macondo y El Peru": [39.4670, -6.3960],
-    "Casa Plata": [39.4540, -6.3710]
-};
-
-function obtenerAlertasDesdeDB() {
-    return new Promise((resolve) => {
-        // --- CORRECCIÓN DE PERSISTENCIA ---
-        // Intentamos recuperar las alertas guardadas en el navegador. 
-        // Si no existen, usamos el array predeterminado por primera vez.
-        let alertasGuardadas = localStorage.getItem('mis_alertas_mapa');
-        let alertas = [];
-
-        if (alertasGuardadas) {
-            alertas = JSON.parse(alertasGuardadas);
-        } else {
-            alertas = [
-                { "Ubicacion": "Centro Histórico", "DB": 78.3, "Criticidad": "Crítica", "Col_Porcentaje": 120, "Tipo_Limite": "OMS 2018", "Valor_Limite": 75 },
-                { "Ubicacion": "Recinto Ferial", "DB": 83.4, "Criticidad": "Crítica", "Col_Porcentaje": 109, "Tipo_Limite": "ITU-T P.56", "Valor_Limite": 80 },
-                { "Ubicacion": "Nuevo Cáceres", "DB": 58.3, "Criticidad": "Moderada", "Col_Porcentaje": 106, "Tipo_Limite": "Configurable", "Valor_Limite": 52.2 }
-            ];
-            localStorage.setItem('mis_alertas_mapa', JSON.stringify(alertas));
-        }
-
-        // Asegurar coordenadas iniciales
-        if (!coordenadasCaceres["Centro Histórico"]) coordenadasCaceres["Centro Histórico"] = [39.4735, -6.3705];
-        if (!coordenadasCaceres["Recinto Ferial"]) coordenadasCaceres["Recinto Ferial"] = [39.4897, -6.3787];
-        if (!coordenadasCaceres["Nuevo Cáceres"]) coordenadasCaceres["Nuevo Cáceres"] = [39.4622, -6.3745];
-
-        // 2. Capturar variables de control de CRUD desde la URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const accion = urlParams.get('accion'); // 'anadir', 'actualizar', 'borrar'
-        const idZona = urlParams.get('id');       // El nombre de la zona actúa como ID único
-
-        if (accion && idZona) {
-            const zonaDecodificada = decodeURIComponent(idZona);
-
-            // ACCIÓN: BORRAR
-            if (accion === 'borrar') {
-                alertas = alertas.filter(a => a.Ubicacion.toLowerCase() !== zonaDecodificada.toLowerCase());
-                console.log("CRUD: Alerta eliminada ->", zonaDecodificada);
-                
-                // Guardamos el cambio permanentemente en el navegador
-                localStorage.setItem('mis_alertas_mapa', JSON.stringify(alertas));
-            }
-            // ACCIÓN: AÑADIR O ACTUALIZAR
-            else if (accion === 'anadir' || accion === 'actualizar') {
-                const nuevaAlerta = {
-                    "Ubicacion": zonaDecodificada,
-                    "DB": parseFloat(urlParams.get('db')) || 60.0,
-                    "Criticidad": urlParams.get('severidad') || 'Moderada',
-                    "Col_Porcentaje": parseInt(urlParams.get('porcentaje')) || 100,
-                    "Tipo_Limite": urlParams.get('normativa') || 'Configurable',
-                    "Valor_Limite": parseFloat(urlParams.get('limite')) || 50.0
-                };
-
-                if (!coordenadasCaceres[zonaDecodificada]) {
-                    coordenadasCaceres[zonaDecodificada] = [39.4700, -6.3700]; 
-                }
-
-                const indiceExistente = alertas.findIndex(a => a.Ubicacion.toLowerCase() === zonaDecodificada.toLowerCase());
-
-                if (indiceExistente !== -1 && accion === 'actualizar') {
-                    alertas[indiceExistente] = nuevaAlerta;
-                    console.log("CRUD: Alerta actualizada ->", zonaDecodificada);
-                } else if (accion === 'anadir') {
-                    alertas.push(nuevaAlerta);
-                    console.log("CRUD: Alerta añadida ->", zonaDecodificada);
-                }
-                
-                // Guardamos el cambio permanentemente en el navegador
-                localStorage.setItem('mis_alertas_mapa', JSON.stringify(alertas));
-            }
-        }
-
-        resolve(alertas);
-    });
-}
-
-
-// Carga asíncrona simultánea
-Promise.all([
-    fetch('datos_mapa.json').then(res => res.json()),
-    obtenerAlertasDesdeDB() // <--- Aquí lee automáticamente de IndexedDB
-])
-.then(([datosRuido, datosAlertasRaw]) => {
+    // 2. Datos JSON (Extraídos de tus archivos generados)
+    // =========================================================================
+    // INICIO CAMBIO: LEER ARCHIVO JSON EXTERNO
+    // =========================================================================
+    // =========================================================================
+    // MODIFICACIÓN 1: CARGA EN PARALELO DE AMBOS JSON
+    // =========================================================================
+    Promise.all([
+        fetch('datos_mapa.json').then(res => res.json()),
+        fetch('datos_alertas.json').then(res => res.json()).catch(err => {
+            console.warn("No se encontró datos_alertas.json o está vacío. Se usará mapa sin alertas.");
+            return []; // Retorna array/objeto vacío para que no rompa el código
+        })
+    ])
+    .then(([datosRuido, datosAlertasRaw]) => {
 
         // Ejecutamos el mapeador flexible (Modificación 2)
         const alertasPredeterminadas = procesarJsonAlertas(datosAlertasRaw);
@@ -455,4 +373,4 @@ Promise.all([
     });
 </script>
 </body>
-</html>
+</html>>
