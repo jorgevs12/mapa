@@ -68,21 +68,32 @@ const coordenadasCaceres = {
     "Casa Plata": [39.4540, -6.3710]
 };
 
-    // 2. Datos JSON (Extraídos de tus archivos generados)
-    // =========================================================================
-    // INICIO CAMBIO: LEER ARCHIVO JSON EXTERNO
-    // =========================================================================
-    // =========================================================================
-    // MODIFICACIÓN 1: CARGA EN PARALELO DE AMBOS JSON
-    // =========================================================================
-    Promise.all([
-        fetch('datos_mapa.json').then(res => res.json()),
-        fetch('datos_alertas.json').then(res => res.json()).catch(err => {
-            console.warn("No se encontró datos_alertas.json o está vacío. Se usará mapa sin alertas.");
-            return []; // Retorna array/objeto vacío para que no rompa el código
-        })
-    ])
-    .then(([datosRuido, datosAlertasRaw]) => {
+function obtenerAlertasDesdeDB() {
+    return new Promise((resolve) => {
+        const request = indexedDB.open("alertas_db", 1);
+        request.onsuccess = (event) => {
+            const db = event.target.result;
+            // Validar si el almacén existe antes de leerlo
+            if (!db.objectStoreNames.contains("alertas")) {
+                resolve([]);
+                return;
+            }
+            const transaction = db.transaction(["alertas"], "readonly");
+            const store = transaction.objectStore("alertas");
+            const getAllRequest = store.getAll();
+            getAllRequest.onsuccess = () => resolve(getAllRequest.result);
+            getAllRequest.onerror = () => resolve([]);
+        };
+        request.onerror = () => resolve([]);
+    });
+}
+
+// Carga asíncrona simultánea
+Promise.all([
+    fetch('datos_mapa.json').then(res => res.json()),
+    obtenerAlertasDesdeDB() // <--- Aquí lee automáticamente de IndexedDB
+])
+.then(([datosRuido, datosAlertasRaw]) => {
 
         // Ejecutamos el mapeador flexible (Modificación 2)
         const alertasPredeterminadas = procesarJsonAlertas(datosAlertasRaw);
