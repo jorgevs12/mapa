@@ -88,21 +88,24 @@ const coordenadasCaceres = {
 
 function obtenerAlertasDesdeDB() {
     return new Promise((resolve) => {
-        // --- CORRECCIÓN DE PERSISTENCIA ---
-        // Intentamos recuperar las alertas guardadas en el navegador. 
-        // Si no existen, usamos el array predeterminado por primera vez.
-        let alertasGuardadas = localStorage.getItem('mis_alertas_mapa');
+        // --- CONTROL Y PERSISTENCIA DE LA BASE DE DATOS LOCAL ---
+        const llaveStorage = 'mis_alertas_mapa';
+        let alertasGuardadas = localStorage.getItem(llaveStorage);
         let alertas = [];
 
-        if (alertasGuardadas) {
+        if (alertasGuardadas !== null) {
+            // SI EXISTE: Usamos los datos guardados previamente en el navegador
             alertas = JSON.parse(alertasGuardadas);
+            console.log("BD LOCAL DETECTADA: Cargando alertas desde localStorage.");
         } else {
+            // NO EXISTE: Inicializamos la BD local con tus datos estáticos por primera vez
             alertas = [
                 { "Ubicacion": "Centro Histórico", "DB": 78.3, "Criticidad": "Crítica", "Col_Porcentaje": 120, "Tipo_Limite": "OMS 2018", "Valor_Limite": 75 },
                 { "Ubicacion": "Recinto Ferial", "DB": 83.4, "Criticidad": "Crítica", "Col_Porcentaje": 109, "Tipo_Limite": "ITU-T P.56", "Valor_Limite": 80 },
                 { "Ubicacion": "Nuevo Cáceres", "DB": 58.3, "Criticidad": "Moderada", "Col_Porcentaje": 106, "Tipo_Limite": "Configurable", "Valor_Limite": 52.2 }
             ];
-            localStorage.setItem('mis_alertas_mapa', JSON.stringify(alertas));
+            localStorage.setItem(llaveStorage, JSON.stringify(alertas));
+            console.log("BD LOCAL NO EXISTÍA: Creada con los datos estáticos iniciales.");
         }
 
         // Asegurar coordenadas iniciales
@@ -117,14 +120,16 @@ function obtenerAlertasDesdeDB() {
 
         if (accion && idZona) {
             const zonaDecodificada = decodeURIComponent(idZona);
+            let huboCambio = false;
 
             // ACCIÓN: BORRAR
             if (accion === 'borrar') {
+                const longitudOriginal = alertas.length;
                 alertas = alertas.filter(a => a.Ubicacion.toLowerCase() !== zonaDecodificada.toLowerCase());
-                console.log("CRUD: Alerta eliminada ->", zonaDecodificada);
-                
-                // Guardamos el cambio permanentemente en el navegador
-                localStorage.setItem('mis_alertas_mapa', JSON.stringify(alertas));
+                if (alertas.length !== longitudOriginal) {
+                    huboCambio = true;
+                    console.log("CRUD: Alerta eliminada ->", zonaDecodificada);
+                }
             }
             // ACCIÓN: AÑADIR O ACTUALIZAR
             else if (accion === 'anadir' || accion === 'actualizar') {
@@ -145,21 +150,30 @@ function obtenerAlertasDesdeDB() {
 
                 if (indiceExistente !== -1 && accion === 'actualizar') {
                     alertas[indiceExistente] = nuevaAlerta;
+                    huboCambio = true;
                     console.log("CRUD: Alerta actualizada ->", zonaDecodificada);
                 } else if (accion === 'anadir') {
                     alertas.push(nuevaAlerta);
+                    huboCambio = true;
                     console.log("CRUD: Alerta añadida ->", zonaDecodificada);
                 }
+            }
+
+            // Si los datos en memoria cambiaron, los guardamos en la BD y limpiamos la URL para pintar el mapa
+            if (huboCambio) {
+                localStorage.setItem(llaveStorage, JSON.stringify(alertas));
                 
-                // Guardamos el cambio permanentemente en el navegador
-                localStorage.setItem('mis_alertas_mapa', JSON.stringify(alertas));
+                // Mantiene el modo visual limpio sin re-ejecutar la acción
+                const modoActual = urlParams.get('modo') || 'mixto';
+                const nuevaUrl = window.location.origin + window.location.pathname + "?modo=" + modoActual;
+                window.location.href = nuevaUrl;
+                return; 
             }
         }
 
         resolve(alertas);
     });
 }
-
 
 // Carga asíncrona simultánea
 Promise.all([
