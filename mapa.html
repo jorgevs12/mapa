@@ -67,9 +67,8 @@ const coordenadasCaceres = {
     "Macondo y El Peru": [39.4670, -6.3960],
     "Casa Plata": [39.4540, -6.3710]
 };
+    
 
-<script>
-// 1. Coordenadas aproximadas de las zonas de Cáceres
 const coordenadasCaceres = {
     "Plaza Mayor": [39.4745, -6.3713],
     "La Madrila": [39.4705, -6.3812],
@@ -173,9 +172,10 @@ function obtenerAlertasDesdeDB() {
         };
     });
 }
+
 // Carga asíncrona simultánea
 Promise.all([
-    fetch('datos_mapa.json').then(res => res.json()),
+    fetch('datos_mapa.json').then(res => res.json()).catch(() => []),
     obtenerAlertasDesdeDB() // <--- Aquí lee automáticamente de IndexedDB
 ])
 .then(([datosRuido, datosAlertasRaw]) => {
