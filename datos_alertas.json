@@ -1,6 +1,6 @@
 [
   {
-    "Ubicacion": "Centro histórico",
+    "Ubicacion": "Centro Histórico",
     "DB": 78.3,
     "Criticidad": "Crítica",
     "Col_Porcentaje": 120,
@@ -16,7 +16,7 @@
     "Valor_Limite": 80
   },
   {
-    "Ubicacion": "Parque del Príncipe",
+    "Ubicacion": "Nuevo Cáceres",
     "DB": 58.3,
     "Criticidad": "Moderada",
     "Col_Porcentaje": 106,
